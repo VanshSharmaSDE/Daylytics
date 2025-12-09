@@ -8,7 +8,39 @@
 
 ## 🚀 Features
 
-### Version 1.4.4 (Current — Beta)
+### Version 1.4.6 (Cuurrent — Beta)
+- **Release Date:** December 2025
+- Additional Improvements:
+      - **🔖 Favicon Implementation** - Daylytics logo favicon added to enhance branding
+      - Displays in browser tab for easy identification
+      - Improves overall user experience
+    - **🔧 Added Sorting Feature** - Users can now sort files by title, date, and size
+      - Sorting preferences are saved and loaded automatically
+      - Fixes formatting bugs related to file display
+      - Removed root files display for cleaner interface
+
+### Version 1.4.5 (Current)
+- **Release Date:** December 2025
+- **Files System Improvements & Performance:**
+   - **🐛 Fixed Nested Folder Deletion Bug** - Folder deletion now properly handles loading states
+     - Loading state clears properly on both success and error
+     - Modal closes even if deletion fails to prevent UI from getting stuck
+     - Comprehensive cache clearing after deletion
+   - **✏️ Simplified File Creation** - Removed folder dropdown for intuitive workflow
+     - Automatically creates files in current folder location
+     - Shows current location indicator (Root or folder path)
+     - Eliminates confusion about where file will be created
+   - **❌ Removed File Moving Feature** - Files stay in creation location
+     - Prevents accidental file misplacement
+     - Cleaner, more focused editing modal
+     - Simplified user experience
+   - **⚡ Optimized Loading Performance** - Files section loads significantly faster
+     - Enhanced caching strategy with cache-first approach
+     - Reduced unnecessary API calls
+     - Parallel fetch execution for folders and files
+     - Instant navigation using cached data
+
+### Version 1.4.4 (Beta)
 - **Release Date:** December 2025
 - **Performance Optimizations:**
    - **⚡ Instant Tab Switching** - Files tab data persists when switching between tabs
@@ -316,7 +348,18 @@ This creates a test user:
 
 ## 📦 Version History
 
-### v1.4.5 (Current — Beta)
+### v1.4.6 (Current - Beta)
+**Release Date:** December 2025
+**Additional Improvements:**
+- ✅ **Favicon Implementation** - Daylytics logo favicon added to enhance branding
+  - Displays in browser tab for easy identification
+  - Improves overall user experience
+- ✅ **Added Sorting Feature** - Users can now sort files by title, date, and size
+  - Sorting preferences are saved and loaded automatically
+  - Fixes formatting bugs related to file display
+  - Removed root files display for cleaner interface
+
+### v1.4.5 (Beta)
 **Release Date:** December 2025
 
 **Files System Improvements & Performance:**

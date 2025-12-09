@@ -24,13 +24,100 @@ const FilesTab = ({ dashboardLoading }) => {
   const [newFolderName, setNewFolderName] = useState('');
   const [pinningFiles, setPinningFiles] = useState(() => new Set());
   const [pinningFolders, setPinningFolders] = useState(() => new Set());
+  const [sortBy, setSortBy] = useState('updatedAt'); // Will be loaded from user settings
+  const [sortOrder, setSortOrder] = useState('desc'); // Will be loaded from user settings
   const { addToast } = useToast();
   const hasLoadedInitially = useRef(false);
+  const hasLoadedPreferences = useRef(false);
   const folderCache = useRef({});
   const fileCache = useRef({});
 
   // Formatting state for rich text editor
   const [formatMenu, setFormatMenu] = useState(false);
+
+  // Helper function to format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Sort files based on current sort settings
+  const sortFiles = (filesToSort) => {
+    return [...filesToSort].sort((a, b) => {
+      // Pinned files always come first
+      if (a.isPinned !== b.isPinned) {
+        return b.isPinned ? 1 : -1;
+      }
+
+      let compareValue = 0;
+      
+      switch(sortBy) {
+        case 'title':
+          compareValue = a.title.localeCompare(b.title);
+          break;
+        case 'createdAt':
+          compareValue = new Date(a.createdAt) - new Date(b.createdAt);
+          break;
+        case 'updatedAt':
+          compareValue = new Date(a.updatedAt) - new Date(b.updatedAt);
+          break;
+        case 'size':
+          compareValue = (a.content?.length || 0) - (b.content?.length || 0);
+          break;
+        default:
+          compareValue = new Date(b.updatedAt) - new Date(a.updatedAt);
+      }
+      
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+  };
+
+  // Load user sorting preferences from database
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const response = await api.get('/api/auth/me');
+        const settings = response.data.settings || {};
+        
+        if (settings.fileSortBy) {
+          setSortBy(settings.fileSortBy);
+        }
+        if (settings.fileSortOrder) {
+          setSortOrder(settings.fileSortOrder);
+        }
+        hasLoadedPreferences.current = true;
+      } catch (error) {
+        console.error('Failed to load user preferences:', error);
+        hasLoadedPreferences.current = true;
+      }
+    };
+    
+    loadUserPreferences();
+  }, []);
+
+  // Save sorting preferences to database when they change
+  useEffect(() => {
+    // Don't save on initial load, only when user actively changes
+    if (!hasLoadedPreferences.current) return;
+    
+    const savePreferences = async () => {
+      try {
+        await api.put('/api/auth/settings', {
+          settings: {
+            fileSortBy: sortBy,
+            fileSortOrder: sortOrder
+          }
+        });
+      } catch (error) {
+        console.error('Failed to save sorting preferences:', error);
+      }
+    };
+    
+    savePreferences();
+  }, [sortBy, sortOrder]);
 
   useEffect(() => {
     const folderKey = currentFolder || 'root';
@@ -50,6 +137,13 @@ const FilesTab = ({ dashboardLoading }) => {
       Promise.all([fetchFolders(), fetchFiles()]);
     }
   }, [currentFolder]);
+
+  // Re-sort files when sort settings change
+  useEffect(() => {
+    if (files.length > 0) {
+      setFiles(sortFiles(files));
+    }
+  }, [sortBy, sortOrder]);
 
   const fetchFolders = async () => {
     const folderKey = currentFolder || 'root';
@@ -90,13 +184,8 @@ const FilesTab = ({ dashboardLoading }) => {
     try {
       const params = { folder: currentFolder || 'null' };
       const response = await api.get('/api/files', { params });
-      // Sort: pinned files first, then by updatedAt
-      const sorted = response.data.sort((a, b) => {
-        if (a.isPinned === b.isPinned) {
-          return new Date(b.updatedAt) - new Date(a.updatedAt);
-        }
-        return b.isPinned ? 1 : -1;
-      });
+      // Apply dynamic sorting
+      const sorted = sortFiles(response.data);
       setFiles(sorted);
       // Cache the result
       fileCache.current[folderKey] = sorted;
@@ -343,6 +432,8 @@ const FilesTab = ({ dashboardLoading }) => {
     const textarea = document.getElementById(isEditing ? 'edit-content' : 'create-content');
     if (!textarea) return;
 
+    // Save scroll position BEFORE making changes
+    const scrollTop = textarea.scrollTop;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const text = textarea.value;
@@ -377,10 +468,11 @@ const FilesTab = ({ dashboardLoading }) => {
       setNewFile({ ...newFile, content: newText });
     }
     
+    // Restore scroll position and cursor after state update
     setTimeout(() => {
-      textarea.value = newText;
       textarea.focus();
       textarea.setSelectionRange(cursorPos, cursorPos);
+      textarea.scrollTop = scrollTop; // Restore scroll position
     }, 0);
   };
 
@@ -516,7 +608,30 @@ const FilesTab = ({ dashboardLoading }) => {
         </div>
       ) : files.length > 0 ? (
         <div>
-          <h5 className="mb-3">Files</h5>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="mb-0">Files</h5>
+            <div className="d-flex gap-2 align-items-center">
+              <small className="text-muted">Sort by:</small>
+              <select 
+                className="form-select form-select-sm" 
+                style={{ width: 'auto' }}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="updatedAt">Last Modified</option>
+                <option value="createdAt">Date Created</option>
+                <option value="title">Name</option>
+                <option value="size">Size</option>
+              </select>
+              <button
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                <i className={`ri-sort-${sortOrder === 'asc' ? 'asc' : 'desc'}`}></i>
+              </button>
+            </div>
+          </div>
           <div className="row g-3">
           {files.map(file => (
             <div key={file._id} className="col-12 col-md-6 col-lg-4">
@@ -556,8 +671,15 @@ const FilesTab = ({ dashboardLoading }) => {
                   <p className="card-text text-muted small file-preview-text">
                     {file.content.replace(/[#*`>\-\[\]]/g, '').substring(0, 100)}{file.content.length > 100 ? '...' : ''}
                   </p>
-                  <div className="text-muted small">
-                    {new Date(file.updatedAt).toLocaleDateString()}
+                  <div className="d-flex justify-content-between align-items-center text-muted small">
+                    <span>
+                      <i className="ri-time-line me-1"></i>
+                      {new Date(file.updatedAt).toLocaleDateString()}
+                    </span>
+                    <span>
+                      <i className="ri-file-text-line me-1"></i>
+                      {formatFileSize(file.content?.length || 0)}
+                    </span>
                   </div>
                 </div>
               </div>

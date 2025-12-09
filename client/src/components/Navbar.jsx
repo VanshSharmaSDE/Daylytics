@@ -40,7 +40,7 @@ const Navbar = ({
   return (
     <>
       <header className="app-navbar panel-shadow">
-        <div className="brand">Daylytics <sub>(Beta)</sub></div>
+        <div className="brand">Daylytics</div>
         <div className="nav-icons-mobile d-flex d-md-none">
           {navItems.filter(item => item.id !== 'files').map((item) => (
             <button
