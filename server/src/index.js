@@ -9,6 +9,10 @@ const taskRoutes = require('./routes/tasks');
 const archiveRoutes = require('./routes/archive');
 const fileRoutes = require('./routes/files');
 const folderRoutes = require('./routes/folders');
+const shareRoutes = require('./routes/share');
+const plannerRoutes = require('./routes/planner');
+const flowChartRoutes = require('./routes/flowcharts');
+const flowChartShareRoutes = require('./routes/flowchart-shares');
 const { startAutoArchiveScheduler } = require('./services/autoArchive');
 const mongoose = require('mongoose');
 
@@ -59,6 +63,10 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
+app.use('/api/shares', shareRoutes);
+app.use('/api/planner', plannerRoutes);
+app.use('/api/flowcharts', flowChartRoutes);
+app.use('/api/flowchart-shares', flowChartShareRoutes);
 
 // Simple health route
 app.get('/api/health', (req, res) => res.json({ status: 'ok', now: new Date().toISOString() }));

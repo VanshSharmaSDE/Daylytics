@@ -3,6 +3,7 @@ import API from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ToastProvider";
+import logo from "../assets/logo.png";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -37,29 +38,22 @@ const Login = () => {
     <div className="auth-page">
       <div className="auth-brand-section">
         <div className="auth-brand-content">
-          <div className="auth-logo">
+          <div className="auth-brand-main">
             <div className="auth-logo-icon">
-              <i className="ri-calendar-check-line"></i>
+              <img src={logo} alt="Daylytics Logo" />
             </div>
-            <h1 className="auth-brand-title">Daylytics</h1>
+            <div className="auth-brand-title-wrapper">
+              <h1 className="auth-brand-title">Daylytics</h1>
+              <span className="auth-version-badge">v2.0</span>
+            </div>
+            <p className="auth-brand-tagline">
+              Your productivity companion for daily tasks and insights
+            </p>
           </div>
-          <p className="auth-brand-tagline">
-            Track your daily tasks and completion insights in one place
-          </p>
-          <div className="auth-version">v1.4.6</div>
-          <div className="auth-features">
-            <div className="auth-feature">
-              <i className="ri-checkbox-circle-line"></i>
-              <span>Daily task management</span>
-            </div>
-            <div className="auth-feature">
-              <i className="ri-line-chart-line"></i>
-              <span>Completion analytics</span>
-            </div>
-            <div className="auth-feature">
-              <i className="ri-moon-line"></i>
-              <span>Dark mode support</span>
-            </div>
+          <div className="auth-brand-visual">
+            <div className="floating-shape shape-1"></div>
+            <div className="floating-shape shape-2"></div>
+            <div className="floating-shape shape-3"></div>
           </div>
         </div>
       </div>

@@ -10,17 +10,41 @@ const formatDate = (d = new Date()) => d.toISOString().slice(0, 10);
 router.get('/', auth, async (req, res) => {
   try {
     const date = req.query.date || formatDate();
-    const tasks = await Task.find({ user: req.user._id, date }).sort({ createdAt: 1 });
+    let tasks = await Task.find({ user: req.user._id, date }).sort({ createdAt: 1 });
+    
+    // Check for recurring tasks from previous days and auto-create them
+    const recurringTasks = await Task.find({ 
+      user: req.user._id, 
+      isRecurring: true,
+      date: { $lt: date }
+    }).distinct('title');
+    
+    // Create missing recurring tasks for today
+    for (const title of recurringTasks) {
+      const exists = tasks.find(t => t.title === title && t.isRecurring);
+      if (!exists) {
+        const newTask = new Task({
+          user: req.user._id,
+          title,
+          date,
+          isRecurring: true,
+          done: false
+        });
+        await newTask.save();
+        tasks.push(newTask);
+      }
+    }
+    
     res.json(tasks);
   } catch (err) {
     res.status(500).send('Server error');
   }
 });
 
-// POST /api/tasks - body { title, date? }
+// POST /api/tasks - body { title, date?, isRecurring? }
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, date } = req.body;
+    const { title, date, isRecurring } = req.body;
     if (!title) return res.status(400).json({ msg: 'Title required' });
 
     // Validate title length
@@ -35,7 +59,12 @@ router.post('/', auth, async (req, res) => {
     }
 
     const dateKey = date ? date.slice(0, 10) : formatDate();
-    const task = new Task({ user: req.user._id, title, date: dateKey });
+    const task = new Task({ 
+      user: req.user._id, 
+      title, 
+      date: dateKey,
+      isRecurring: isRecurring || false
+    });
     await task.save();
     res.json(task);
   } catch (err) {
@@ -49,6 +78,19 @@ router.patch('/:id', auth, async (req, res) => {
     const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
     if (!task) return res.status(404).json({ msg: 'Task not found' });
     task.done = !task.done;
+    await task.save();
+    res.json(task);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
+// PATCH /api/tasks/:id/recurring - toggle recurring status
+router.patch('/:id/recurring', auth, async (req, res) => {
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+    if (!task) return res.status(404).json({ msg: 'Task not found' });
+    task.isRecurring = !task.isRecurring;
     await task.save();
     res.json(task);
   } catch (err) {

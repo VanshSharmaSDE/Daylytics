@@ -5,9 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
-    "seed": "node scripts/seedTestData.js",
-    "rollover": "node scripts/rolloverAll.js"
+    "start": "node src/index.js"
   },
   "keywords": [],
   "author": "",
