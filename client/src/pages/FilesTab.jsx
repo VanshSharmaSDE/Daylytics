@@ -1,39 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../api';
 import { useToast } from '../components/ToastProvider';
-import { marked } from 'marked';
 import Modal from '../components/Modal';
-import Loader from '../components/Loader';
+import { FilesLoader, ProgressBar } from '../components/LoadingStates';
+import FileViewer from '../components/FileViewer';
+import FileEditor from '../components/FileEditor';
+import ShareManager from '../components/ShareManager';
+import SearchModal from '../components/SearchModal';
 
-const FilesTab = ({ dashboardLoading }) => {
+const FilesTab = () => {
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderPath, setFolderPath] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [fetchingData, setFetchingData] = useState(false);
   const [operationLoading, setOperationLoading] = useState(false);
   const [operationMessage, setOperationMessage] = useState('');
-  const [editingFile, setEditingFile] = useState(null);
-  const [viewingFile, setViewingFile] = useState(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [hasLoadedData, setHasLoadedData] = useState(false);
+  
+  // Screen states: 'list' | 'view' | 'edit' | 'create'
+  const [screenMode, setScreenMode] = useState('list');
+  const [currentFile, setCurrentFile] = useState(null);
+  
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteFolderModal, setShowDeleteFolderModal] = useState(false);
+  const [showShareManager, setShowShareManager] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [folderToDelete, setFolderToDelete] = useState(null);
-  const [newFile, setNewFile] = useState({ title: '', content: '' });
   const [newFolderName, setNewFolderName] = useState('');
   const [pinningFiles, setPinningFiles] = useState(() => new Set());
   const [pinningFolders, setPinningFolders] = useState(() => new Set());
-  const [sortBy, setSortBy] = useState('updatedAt'); // Will be loaded from user settings
-  const [sortOrder, setSortOrder] = useState('desc'); // Will be loaded from user settings
+  const [sortBy, setSortBy] = useState('updatedAt');
+  const [sortOrder, setSortOrder] = useState('desc');
   const { addToast } = useToast();
-  const hasLoadedInitially = useRef(false);
   const hasLoadedPreferences = useRef(false);
-  const folderCache = useRef({});
-  const fileCache = useRef({});
-
-  // Formatting state for rich text editor
-  const [formatMenu, setFormatMenu] = useState(false);
 
   // Helper function to format file size
   const formatFileSize = (bytes) => {
@@ -120,22 +122,18 @@ const FilesTab = ({ dashboardLoading }) => {
   }, [sortBy, sortOrder]);
 
   useEffect(() => {
-    const folderKey = currentFolder || 'root';
-    
-    // Only fetch on initial mount
-    if (!hasLoadedInitially.current) {
-      hasLoadedInitially.current = true;
-      setLoading(true);
-      Promise.all([fetchFolders(), fetchFiles()])
-        .finally(() => setLoading(false));
-    } else if (folderCache.current[folderKey] && fileCache.current[folderKey]) {
-      // Use cached data immediately - instant navigation!
-      setFolders(folderCache.current[folderKey]);
-      setFiles(fileCache.current[folderKey]);
-    } else {
-      // Fetch in parallel if not cached
-      Promise.all([fetchFolders(), fetchFiles()]);
-    }
+    const loadData = async () => {
+      if (initialLoading) {
+        await Promise.all([fetchFolders(), fetchFiles()]);
+        setInitialLoading(false);
+        setHasLoadedData(true);
+      } else {
+        setFetchingData(true);
+        await Promise.all([fetchFolders(), fetchFiles()]);
+        setFetchingData(false);
+      }
+    };
+    loadData();
   }, [currentFolder]);
 
   // Re-sort files when sort settings change
@@ -146,14 +144,6 @@ const FilesTab = ({ dashboardLoading }) => {
   }, [sortBy, sortOrder]);
 
   const fetchFolders = async () => {
-    const folderKey = currentFolder || 'root';
-    
-    // Check cache first
-    if (folderCache.current[folderKey]) {
-      setFolders(folderCache.current[folderKey]);
-      return;
-    }
-    
     try {
       const params = currentFolder ? { parentFolder: currentFolder } : {};
       const response = await api.get('/api/folders', { params });
@@ -165,47 +155,35 @@ const FilesTab = ({ dashboardLoading }) => {
         return b.isPinned ? 1 : -1;
       });
       setFolders(sorted);
-      // Cache the result
-      folderCache.current[folderKey] = sorted;
     } catch (error) {
       addToast('error', 'Failed to load folders');
     }
   };
 
   const fetchFiles = async () => {
-    const folderKey = currentFolder || 'root';
-    
-    // Check cache first
-    if (fileCache.current[folderKey]) {
-      setFiles(fileCache.current[folderKey]);
-      return;
-    }
-    
     try {
       const params = { folder: currentFolder || 'null' };
       const response = await api.get('/api/files', { params });
       // Apply dynamic sorting
       const sorted = sortFiles(response.data);
       setFiles(sorted);
-      // Cache the result
-      fileCache.current[folderKey] = sorted;
     } catch (error) {
       addToast('error', 'Failed to load files');
     }
   };
 
-  const handleCreateFile = async () => {
-    if (!newFile.title.trim()) {
+  const handleCreateFile = async (fileData) => {
+    if (!fileData.title.trim()) {
       addToast('error', 'Please enter a file title');
       return;
     }
 
-    if (newFile.title.length > 200) {
+    if (fileData.title.length > 200) {
       addToast('error', 'Title must be 200 characters or less');
       return;
     }
 
-    if (newFile.content.length > 50000) {
+    if (fileData.content.length > 50000) {
       addToast('error', 'Content must be 50,000 characters or less');
       return;
     }
@@ -214,14 +192,11 @@ const FilesTab = ({ dashboardLoading }) => {
       setOperationLoading(true);
       setOperationMessage('Creating your file...');
       // Automatically use current folder location
-      const fileData = { ...newFile, folder: currentFolder || null };
-      await api.post('/api/files', fileData);
+      const newFileData = { ...fileData, folder: currentFolder || null };
+      await api.post('/api/files', newFileData);
       addToast('success', 'File created successfully');
-      setShowCreateModal(false);
-      setNewFile({ title: '', content: '' });
-      // Clear cache and refetch
-      const folderKey = currentFolder || 'root';
-      fileCache.current[folderKey] = null;
+      setScreenMode('list');
+      setCurrentFile(null);
       await fetchFiles();
     } catch (error) {
       addToast('error', error.response?.data?.message || 'Failed to create file');
@@ -231,13 +206,13 @@ const FilesTab = ({ dashboardLoading }) => {
     }
   };
 
-  const handleUpdateFile = async (id, updates) => {
-    if (updates.title && updates.title.length > 200) {
+  const handleUpdateFile = async (fileData) => {
+    if (fileData.title && fileData.title.length > 200) {
       addToast('error', 'Title must be 200 characters or less');
       return;
     }
 
-    if (updates.content && updates.content.length > 50000) {
+    if (fileData.content && fileData.content.length > 50000) {
       addToast('error', 'Content must be 50,000 characters or less');
       return;
     }
@@ -245,12 +220,12 @@ const FilesTab = ({ dashboardLoading }) => {
     try {
       setOperationLoading(true);
       setOperationMessage('Updating your file...');
-      await api.put(`/api/files/${id}`, updates);
+      await api.put(`/api/files/${currentFile._id}`, fileData);
       addToast('success', 'File updated successfully');
-      setEditingFile(null);
-      setViewingFile(updates);
-      // Clear cache and refetch
-      fileCache.current = {};
+      setScreenMode('view');
+      // Refresh the current file data
+      const response = await api.get(`/api/files/${currentFile._id}`);
+      setCurrentFile(response.data);
       await fetchFiles();
     } catch (error) {
       addToast('error', error.response?.data?.message || 'Failed to update file');
@@ -260,17 +235,15 @@ const FilesTab = ({ dashboardLoading }) => {
     }
   };
 
-  const handleDeleteFile = async (id) => {
+  const handleDeleteFile = async () => {
     try {
       setOperationLoading(true);
       setOperationMessage('Deleting your file...');
-      await api.delete(`/api/files/${id}`);
+      await api.delete(`/api/files/${currentFile._id}`);
       addToast('success', 'File deleted successfully');
-      setViewingFile(null);
+      setScreenMode('list');
+      setCurrentFile(null);
       setShowDeleteModal(false);
-      // Clear cache and refetch
-      const folderKey = currentFolder || 'root';
-      fileCache.current[folderKey] = null;
       await fetchFiles();
     } catch (error) {
       addToast('error', 'Failed to delete file');
@@ -278,6 +251,26 @@ const FilesTab = ({ dashboardLoading }) => {
       setOperationLoading(false);
       setOperationMessage('');
     }
+  };
+
+  // Screen navigation handlers
+  const handleViewFile = (file) => {
+    setCurrentFile(file);
+    setScreenMode('view');
+  };
+
+  const handleEditFile = () => {
+    setScreenMode('edit');
+  };
+
+  const handleCreateNewFile = () => {
+    setCurrentFile(null);
+    setScreenMode('create');
+  };
+
+  const handleBackToList = () => {
+    setScreenMode('list');
+    setCurrentFile(null);
   };
 
   const handleCreateFolder = async () => {
@@ -298,9 +291,6 @@ const FilesTab = ({ dashboardLoading }) => {
       addToast('success', 'Folder created successfully');
       setShowCreateFolderModal(false);
       setNewFolderName('');
-      // Clear cache and refetch
-      const folderKey = currentFolder || 'root';
-      folderCache.current[folderKey] = null;
       await fetchFolders();
     } catch (error) {
       addToast('error', error.response?.data?.message || 'Failed to create folder');
@@ -318,9 +308,6 @@ const FilesTab = ({ dashboardLoading }) => {
       addToast('success', 'Folder deleted successfully');
       setShowDeleteFolderModal(false);
       setFolderToDelete(null);
-      // Clear all cache to refresh properly
-      folderCache.current = {};
-      fileCache.current = {};
       await Promise.all([fetchFolders(), fetchFiles()]);
     } catch (error) {
       addToast('error', error.response?.data?.message || 'Failed to delete folder');
@@ -428,97 +415,106 @@ const FilesTab = ({ dashboardLoading }) => {
     return { newText, cursorPos: start + before.length + selectedText.length + after.length };
   };
 
-  const applyFormat = (format, file, isEditing = false) => {
-    const textarea = document.getElementById(isEditing ? 'edit-content' : 'create-content');
-    if (!textarea) return;
-
-    // Save scroll position BEFORE making changes
-    const scrollTop = textarea.scrollTop;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    const selectedText = text.substring(start, end);
-
-    let before = '', after = '';
-    
-    switch(format) {
-      case 'h1': before = '# '; break;
-      case 'h2': before = '## '; break;
-      case 'h3': before = '### '; break;
-      case 'bold': before = '**'; after = '**'; break;
-      case 'italic': before = '_'; after = '_'; break;
-      case 'code': before = '`'; after = '`'; break;
-      case 'codeblock': before = '```\n'; after = '\n```'; break;
-      case 'link': before = '['; after = '](url)'; break;
-      case 'list': before = '- '; break;
-      case 'numlist': before = '1. '; break;
-      case 'quote': before = '> '; break;
-      case 'hr': before = '\n---\n'; break;
-      case 'table':
-        before = '\n| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |\n';
-        break;
-    }
-
-    const newText = text.substring(0, start) + before + selectedText + after + text.substring(end);
-    const cursorPos = start + before.length + selectedText.length + after.length;
-    
-    if (isEditing) {
-      setEditingFile({ ...editingFile, content: newText });
-    } else {
-      setNewFile({ ...newFile, content: newText });
-    }
-    
-    // Restore scroll position and cursor after state update
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(cursorPos, cursorPos);
-      textarea.scrollTop = scrollTop; // Restore scroll position
-    }, 0);
-  };
-
-  // Don't show FilesTab loader if Dashboard is already loading
-  if (loading && !dashboardLoading) {
-    return <Loader message='Loading Your Files & Folders...'/>;
+  // Show initial loader when first loading
+  if (initialLoading) {
+    return <FilesLoader />;
   }
 
   if (operationLoading) {
-    return <Loader message={operationMessage}/>;
+    return <FilesLoader message={operationMessage}/>;
   }
 
+  // Render different screens based on mode
+  if (screenMode === 'view' && currentFile) {
+    return (
+      <FileViewer
+        file={currentFile}
+        onEdit={handleEditFile}
+        onDelete={() => setShowDeleteModal(true)}
+        onBack={handleBackToList}
+      />
+    );
+  }
+
+  if (screenMode === 'edit' && currentFile) {
+    return (
+      <FileEditor
+        file={currentFile}
+        onSave={handleUpdateFile}
+        onCancel={handleBackToList}
+        isCreating={false}
+      />
+    );
+  }
+
+  if (screenMode === 'create') {
+    return (
+      <FileEditor
+        file={{ title: '', content: '' }}
+        onSave={handleCreateFile}
+        onCancel={handleBackToList}
+        isCreating={true}
+      />
+    );
+  }
+
+  // Default: show file list
   return (
-    <div className="files-tab">
+    <div className="files-tab h-100">
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h2 className="mb-0">My Files</h2>
         <div className="d-flex gap-2">
           <button 
             className="btn btn-outline-secondary d-flex align-items-center gap-1"
-            onClick={() => {
-              // Clear cache and refetch
-              folderCache.current = {};
-              fileCache.current = {};
-              setLoading(true);
-              Promise.all([fetchFolders(), fetchFiles()])
-                .finally(() => setLoading(false));
+            onClick={async () => {
+              setInitialLoading(true);
+              await Promise.all([fetchFolders(), fetchFiles()]);
+              setInitialLoading(false);
             }}
             title="Refresh files and folders"
+            disabled={initialLoading}
           >
             <i className="ri-refresh-line"></i>
           </button>
           <button 
-            className="btn btn-outline-primary"
-            onClick={() => setShowCreateFolderModal(true)}
+            className="btn btn-outline-secondary d-flex align-items-center"
+            onClick={() => setShowSearchModal(true)}
+            aria-label="Search"
+            title="Search files, folders, and tasks"
           >
-            <i className="ri-folder-add-line me-2"></i>New Folder
+            <i className="ri-search-line me-sm-2" aria-hidden="true"></i>
+            <span className="d-none d-sm-inline">Search</span>
           </button>
           <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
+            className="btn btn-outline-info d-flex align-items-center"
+            onClick={() => setShowShareManager(true)}
+            aria-label="Share"
           >
-            <i className="ri-add-line me-2"></i>New File
+            <i className="ri-share-line me-sm-2" aria-hidden="true"></i>
+            <span className="d-none d-sm-inline">Share</span>
+          </button>
+          <button 
+            className="btn btn-outline-primary d-flex align-items-center"
+            onClick={() => setShowCreateFolderModal(true)}
+            aria-label="New folder"
+          >
+            <i className="ri-folder-add-line me-sm-2" aria-hidden="true"></i>
+            <span className="d-none d-sm-inline">New Folder</span>
+          </button>
+          <button 
+            className="btn btn-primary d-flex align-items-center"
+            onClick={handleCreateNewFile}
+            aria-label="New file"
+          >
+            <i className="ri-add-line me-sm-2" aria-hidden="true"></i>
+            <span className="d-none d-sm-inline">New File</span>
           </button>
         </div>
       </div>
+
+      {/* GitHub-style Progress Bar */}
+      {fetchingData && <ProgressBar />}
 
       {/* Breadcrumb Navigation */}
       {folderPath.length > 0 && (
@@ -548,6 +544,7 @@ const FilesTab = ({ dashboardLoading }) => {
       )}
 
       {/* Folders List */}
+      <div className={fetchingData ? 'content-blur' : ''}>
       {
       folders.length > 0 && (
         <div className="mb-4">
@@ -601,7 +598,7 @@ const FilesTab = ({ dashboardLoading }) => {
       )}
 
       {/* Files List */}
-      {files.length === 0 && folders.length === 0 ? (
+      {hasLoadedData && !fetchingData && files.length === 0 && folders.length === 0 ? (
         <div className="text-center py-5 text-muted">
           <i className="ri-file-line" style={{ fontSize: '3rem' }}></i>
           <p className="mt-3">No files or folders yet. Create your first one!</p>
@@ -635,7 +632,7 @@ const FilesTab = ({ dashboardLoading }) => {
           <div className="row g-3">
           {files.map(file => (
             <div key={file._id} className="col-12 col-md-6 col-lg-4">
-              <div className="card h-100 file-card" onClick={() => setViewingFile(file)}>
+              <div className="card h-100 file-card" onClick={() => handleViewFile(file)}>
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="card-title mb-0 file-title-truncate">{file.title}</h5>
@@ -659,7 +656,7 @@ const FilesTab = ({ dashboardLoading }) => {
                         className="file-pin-btn text-danger"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setViewingFile(file);
+                          setCurrentFile(file);
                           setShowDeleteModal(true);
                         }}
                         title="Delete file"
@@ -688,330 +685,57 @@ const FilesTab = ({ dashboardLoading }) => {
         </div>
         </div>
       ) : null}
+      </div>
 
-      {/* Create Folder Modal */}
-      {showCreateFolderModal && (
-        <div 
-          className="modal show d-block" 
-          tabIndex="-1" 
-          style={{ backgroundColor: 'rgba(31, 35, 40, 0.18)', backdropFilter: 'blur(1px)' }}
-          onClick={() => {
-            setShowCreateFolderModal(false);
-            setNewFolderName('');
-          }}
-        >
-          <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h5 className="modal-title">Create New Folder</h5>
-                <button type="button" className="btn-close" onClick={() => {
-                  setShowCreateFolderModal(false);
-                  setNewFolderName('');
-                }}></button>
-              </div>
-              <div className="modal-body">
-                <div className="mb-3">
-                  <label className="form-label">Folder Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter folder name (max 100 characters)"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    maxLength={100}
-                  />
-                  <small className="text-muted">{newFolderName.length}/100</small>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => {
-                  setShowCreateFolderModal(false);
-                  setNewFolderName('');
-                }} disabled={operationLoading}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={handleCreateFolder} disabled={operationLoading}>
-                  {operationLoading ? 'Creating...' : <>Create <i className="ri-add-fill"></i></>}
-                </button>
-              </div>
-            </div>
+      <Modal
+        open={showCreateFolderModal}
+        onClose={() => {
+          if (operationLoading) return;
+          setShowCreateFolderModal(false);
+          setNewFolderName('');
+        }}
+        title="Create New Folder"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => {
+                setShowCreateFolderModal(false);
+                setNewFolderName('');
+              }}
+              disabled={operationLoading}
+              data-autofocus
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleCreateFolder}
+              disabled={operationLoading}
+            >
+              {operationLoading ? 'Creating...' : <>Create <i className="ri-add-fill"></i></>}
+            </button>
           </div>
+        }
+      >
+        <div className="mb-3">
+          <label className="form-label">Folder Name</label>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter folder name (max 100 characters)"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            maxLength={100}
+            data-autofocus
+          />
+          <small className="text-muted">{newFolderName.length}/100</small>
         </div>
-      )}
+      </Modal>
 
-      {/* Create File Modal */}
-      {showCreateModal && (
-        <div 
-          className="modal show d-block" 
-          tabIndex="-1" 
-          style={{ backgroundColor: 'rgba(31, 35, 40, 0.18)', backdropFilter: 'blur(1px)' }}
-          onClick={() => {
-            setShowCreateModal(false);
-            setNewFile({ title: '', content: '' });
-          }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h5 className="modal-title">Create New File</h5>
-                <div className='d-flex gap-2'>
-                  <button type="button" className="btn btn-secondary" onClick={() => {
-                  setShowCreateModal(false);
-                  setNewFile({ title: '', content: '' });
-                }} disabled={operationLoading}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={handleCreateFile} disabled={operationLoading}>
-                  {operationLoading ? 'Creating...' : <>Create <i className="ri-add-fill"></i></>}
-                </button>
-                </div>
-              </div>
-              <div className="modal-body">
-        <div>
-                <div className="mb-3">
-                  <label className="form-label">Title</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Enter file title (max 200 characters)"
-                    value={newFile.title}
-                    onChange={(e) => setNewFile({ ...newFile, title: e.target.value })}
-                    maxLength={200}
-                  />
-                  <small className="text-muted d-block">{newFile.title.length}/200</small>
-                  {folderPath.length > 0 && (
-                    <small className="text-info d-block mt-1">
-                      <i className="ri-folder-line me-1"></i>
-                      Creating in: {folderPath.map(f => f.name).join(' / ')}
-                    </small>
-                  )}
-                  {folderPath.length === 0 && (
-                    <small className="text-muted d-block mt-1">
-                      <i className="ri-home-line me-1"></i>
-                      Creating in: Root
-                    </small>
-                  )}
-                </div>
-                
-                <div className="mb-3">
-                  
-                  {/* Rich Text Toolbar */}
-                  <div className="toolbar mb-2 p-2 border rounded">
-                    <div className="btn-group btn-group-sm me-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h1', newFile)} title="Heading 1">
-                        <i className="ri-h-1"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h2', newFile)} title="Heading 2">
-                        <i className="ri-h-2"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h3', newFile)} title="Heading 3">
-                        <i className="ri-h-3"></i>
-                      </button>
-                    </div>
-                    
-                    <div className="btn-group btn-group-sm me-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('bold', newFile)} title="Bold">
-                        <i className="ri-bold"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('italic', newFile)} title="Italic">
-                        <i className="ri-italic"></i>
-                      </button>
-                    </div>
-                    
-                    <div className="btn-group btn-group-sm me-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('list', newFile)} title="Bullet List">
-                        <i className="ri-list-unordered"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('numlist', newFile)} title="Numbered List">
-                        <i className="ri-list-ordered"></i>
-                      </button>
-                    </div>
-                    
-                    <div className="btn-group btn-group-sm me-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('code', newFile)} title="Inline Code">
-                        <i className="ri-code-line"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('codeblock', newFile)} title="Code Block">
-                        <i className="ri-code-box-line"></i>
-                      </button>
-                    </div>
-                    
-                    <div className="btn-group btn-group-sm me-2">
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('link', newFile)} title="Link">
-                        <i className="ri-link"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('quote', newFile)} title="Quote">
-                        <i className="ri-double-quotes-l"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('table', newFile)} title="Table">
-                        <i className="ri-table-line"></i>
-                      </button>
-                      <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('hr', newFile)} title="Horizontal Rule">
-                        <i className="ri-separator"></i>
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <textarea
-                    id="create-content"
-                    className="form-control"
-                    rows="18"
-                    placeholder="Write your content here using markdown formatting..."
-                    value={newFile.content}
-                    onChange={(e) => setNewFile({ ...newFile, content: e.target.value })}
-                    maxLength={50000}
-                  ></textarea>
-                  <small className="text-muted">{newFile.content.length}/50,000</small>
-                </div>
-        </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View/Edit File Modal */}
-      {viewingFile && (
-        <div 
-          className="modal show d-block" 
-          tabIndex="-1" 
-          style={{ backgroundColor: 'rgba(31, 35, 40, 0.18)', backdropFilter: 'blur(1px)' }}
-          onClick={() => {
-            setViewingFile(null);
-            setEditingFile(null);
-          }}
-        >
-          <div className="modal-dialog modal-lg modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                {editingFile ? (
-                  <h5 className="modal-title">{editingFile.title}</h5>
-                ) : (
-                  <h5 className="modal-title">{viewingFile.title}</h5>
-                )}
-                <div className='d-flex gap-2 align-items-center'>
-                  <button type="button" className="btn btn-secondary" onClick={() => {
-                  setViewingFile(null);
-                  setEditingFile(null);
-                }}>Close</button>
-                  {editingFile ? (
-                  <>
-                  <button type="button" className="btn btn-primary" onClick={() => handleUpdateFile(editingFile._id, editingFile)} disabled={operationLoading}>
-                      <i className="ri-save-line"></i> {operationLoading ? 'Saving...' : 'Save'}
-                    </button>
-                    <button type="button" className="btn btn-danger" onClick={() => setEditingFile(null)} disabled={operationLoading}>
-                      <i className="ri-close-line"></i> Cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                   <button type="button" className="btn btn-primary" onClick={() => setEditingFile({ ...viewingFile })} disabled={operationLoading}>
-                      <i className="ri-edit-line"></i> Edit
-                    </button>
-                    <button type="button" className="btn btn-danger" onClick={() => setShowDeleteModal(true)} disabled={operationLoading}>
-                      <i className="ri-delete-bin-line"></i> Delete
-                    </button>
-                  </>
-                )}
-                </div>
-              </div>
-              <div className="modal-body">
-        {viewingFile && (
-          <div>
-                {editingFile ? (
-                  <>
-                    {/* Title for Editing */}
-                    <div className="mb-3">
-                      <label className="form-label">Title</label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={editingFile.title}
-                        onChange={(e) => setEditingFile({ ...editingFile, title: e.target.value })}
-                        maxLength={200}
-                      />
-                      <small className="text-muted">{editingFile.title.length}/200</small>
-                    </div>
-                    {/* Rich Text Toolbar for Editing */}
-                    <div className="toolbar mb-2 p-2 border rounded">
-                      <div className="btn-group btn-group-sm me-2">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h1', editingFile, true)} title="Heading 1">
-                          <i className="ri-h-1"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h2', editingFile, true)} title="Heading 2">
-                          <i className="ri-h-2"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('h3', editingFile, true)} title="Heading 3">
-                          <i className="ri-h-3"></i>
-                        </button>
-                      </div>
-                      
-                      <div className="btn-group btn-group-sm me-2">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('bold', editingFile, true)} title="Bold">
-                          <i className="ri-bold"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('italic', editingFile, true)} title="Italic">
-                          <i className="ri-italic"></i>
-                        </button>
-                      </div>
-                      
-                      <div className="btn-group btn-group-sm me-2">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('list', editingFile, true)} title="Bullet List">
-                          <i className="ri-list-unordered"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('numlist', editingFile, true)} title="Numbered List">
-                          <i className="ri-list-ordered"></i>
-                        </button>
-                      </div>
-                      
-                      <div className="btn-group btn-group-sm me-2">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('code', editingFile, true)} title="Inline Code">
-                          <i className="ri-code-line"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('codeblock', editingFile, true)} title="Code Block">
-                          <i className="ri-code-box-line"></i>
-                        </button>
-                      </div>
-                      
-                      <div className="btn-group btn-group-sm me-2">
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('link', editingFile, true)} title="Link">
-                          <i className="ri-link"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('quote', editingFile, true)} title="Quote">
-                          <i className="ri-double-quotes-l"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('table', editingFile, true)} title="Table">
-                          <i className="ri-table-line"></i>
-                        </button>
-                        <button type="button" className="btn btn-outline-secondary" onClick={() => applyFormat('hr', editingFile, true)} title="Horizontal Rule">
-                          <i className="ri-separator"></i>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <textarea
-                      id="edit-content"
-                      className="form-control"
-                      rows="19"
-                      value={editingFile.content}
-                      onChange={(e) => setEditingFile({ ...editingFile, content: e.target.value })}
-                      maxLength={50000}
-                    ></textarea>
-                    <small className="text-muted">{editingFile.content.length}/50,000</small>
-                  </>
-                ) : (
-                  <div className="file-content">
-                    <div 
-                      className="markdown-preview"
-                      dangerouslySetInnerHTML={{ __html: marked(viewingFile.content) }}
-                    />
-                  </div>
-                )}
-          </div>
-        )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
+      {/* Delete File Confirmation Modal */}
       <Modal
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
@@ -1029,7 +753,7 @@ const FilesTab = ({ dashboardLoading }) => {
             <button
               className="btn btn-danger"
               type="button"
-              onClick={() => handleDeleteFile(viewingFile._id)}
+              onClick={handleDeleteFile}
               disabled={operationLoading}
             >
               {operationLoading ? 'Deleting...' : 'Delete'}
@@ -1037,7 +761,7 @@ const FilesTab = ({ dashboardLoading }) => {
           </div>
         }
       >
-        <p className="mb-0">Are you sure you want to delete "{viewingFile?.title}"? This action cannot be undone.</p>
+        <p className="mb-0">Are you sure you want to delete "{currentFile?.title}"? This action cannot be undone.</p>
       </Modal>
 
       {/* Delete Folder Confirmation Modal */}
@@ -1075,6 +799,23 @@ const FilesTab = ({ dashboardLoading }) => {
         <p className="mb-0">Are you sure you want to delete folder "{folderToDelete?.name}"?</p>
         <p className="mb-0 text-warning"><small>Note: Folder must be empty (no files or subfolders) to be deleted.</small></p>
       </Modal>
+
+      {/* Share Manager */}
+      {showShareManager && (
+        <ShareManager
+          files={files}
+          folders={folders}
+          onClose={() => setShowShareManager(false)}
+        />
+      )}
+
+      {/* Search Modal */}
+      <SearchModal
+        open={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onSelectFile={handleViewFile}
+        onSelectFolder={openFolder}
+      />
     </div>
   );
 };

@@ -2,13 +2,13 @@
 
 > A powerful daily task management app with built-in analytics to track your productivity.
 
-**Current Version:** `1.4.6` (Beta)
+**Current Version:** `1.4.5` (Beta)
 
 ---
 
 ## 🚀 Features
 
-### Version 1.4.6 (Current — Beta)
+### Version 1.4.6 (Cuurrent — Beta)
 - **Release Date:** December 2025
 - Additional Improvements:
       - **🔖 Favicon Implementation** - Daylytics logo favicon added to enhance branding
@@ -19,7 +19,7 @@
       - Fixes formatting bugs related to file display
       - Removed root files display for cleaner interface
 
-### Version 1.4.5 (Beta)
+### Version 1.4.5 (Current)
 - **Release Date:** December 2025
 - **Files System Improvements & Performance:**
    - **🐛 Fixed Nested Folder Deletion Bug** - Folder deletion now properly handles loading states

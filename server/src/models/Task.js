@@ -5,6 +5,7 @@ const taskSchema = new mongoose.Schema({
   date: { type: String, required: true }, // store ISO date string YYYY-MM-DD
   title: { type: String, required: true, maxlength: 500 },
   done: { type: Boolean, default: false },
+  isRecurring: { type: Boolean, default: false }, // marks if task repeats daily
 }, { timestamps: true });
 
 module.exports = mongoose.model('Task', taskSchema);

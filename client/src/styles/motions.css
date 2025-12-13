@@ -46,7 +46,6 @@ body {
 .app-navbar,
 .panel,
 .card,
-.modal-panel,
 .toast-item,
 .overlay-content {
   animation: fadeLift var(--motion-duration-base) var(--motion-ease);
