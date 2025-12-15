@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import Loader from "../components/Loader";
 import Navbar from "../components/Navbar";
 import ProfileModal from "../components/ProfileModal";
 import Modal from "../components/Modal";
@@ -44,8 +43,6 @@ const Dashboard = () => {
           mobileMenuOpen={mobileMenuOpen}
           onToggleMenu={setMobileMenuOpen}
         />
-        {globalLoading && <Loader message="Syncing your day..." />}
-        {operationLoading && <Loader message={operationMessage} />}
 
         {activeTab === "tasks" && <TasksTab user={user} />}
 
