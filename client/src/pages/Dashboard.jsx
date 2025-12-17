@@ -106,7 +106,7 @@ const Dashboard = () => {
           pointerEvents: "none",
         }}
       >
-        v1.5.6
+        v1.5.7
       </div>
 
       <div

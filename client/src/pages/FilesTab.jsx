@@ -216,55 +216,109 @@ const FilesTab = () => {
       )}
 
       {/* Folders List */}
-      {
-      folders.length > 0 && (
+      {folders.length > 0 && (
         <div className="mb-4">
-          <h5 className="mb-3">Folders</h5>
-          <div className="row g-3">
-            {folders.map((folder) => (
-              <div key={folder._id} className="col-md-3 col-sm-6">
-                <div className="card folder-card h-100">
-                  <div className="card-body" onClick={() => openFolder(folder._id, folder.name)} style={{ cursor: 'pointer' }}>
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <i className="ri-folder-fill text-warning" style={{ fontSize: '2rem' }}></i>
-                      <div className="d-flex gap-1">
-                        <button
-                          className="file-pin-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleFolderPin(folder._id);
-                          }}
-                          disabled={pinningFolders.has(folder._id)}
-                          title={folder.isPinned ? 'Unpin folder' : 'Pin folder'}
-                        >
-                          {pinningFolders.has(folder._id) ? (
-                            <div className="spinner-border spinner-border-sm" role="status" />
-                          ) : (
-                            <i className={folder.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
-                          )}
-                        </button>
-                        <button
-                          className="file-pin-btn text-danger"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFolderToDelete(folder);
-                            setShowDeleteFolderModal(true);
-                          }}
-                          title="Delete folder"
-                        >
-                          <i className="ri-delete-bin-line"></i>
-                        </button>
+          {folders.filter(f => f.isPinned).length > 0 && (
+            <>
+              <h5 className="mb-3">Pinned Folders</h5>
+              <div className="row g-3 mb-3">
+                {folders.filter(f => f.isPinned).map((folder) => (
+                  <div key={folder._id} className="col-md-3 col-sm-6">
+                    <div className="card folder-card h-100">
+                      <div className="card-body" onClick={() => openFolder(folder._id, folder.name)} style={{ cursor: 'pointer' }}>
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                          <i className="ri-folder-fill text-warning" style={{ fontSize: '2rem' }}></i>
+                          <div className="d-flex gap-1">
+                            <button
+                              className="file-pin-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleFolderPin(folder._id);
+                              }}
+                              disabled={pinningFolders.has(folder._id)}
+                              title={folder.isPinned ? 'Unpin folder' : 'Pin folder'}
+                            >
+                              {pinningFolders.has(folder._id) ? (
+                                <div className="spinner-border spinner-border-sm" role="status" />
+                              ) : (
+                                <i className={folder.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
+                              )}
+                            </button>
+                            <button
+                              className="file-pin-btn text-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFolderToDelete(folder);
+                                setShowDeleteFolderModal(true);
+                              }}
+                              title="Delete folder"
+                            >
+                              <i className="ri-delete-bin-line"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <h6 className="mt-2 mb-0">{folder.name}</h6>
+                        <small className="text-muted">
+                          {new Date(folder.createdAt).toLocaleDateString()}
+                        </small>
                       </div>
                     </div>
-                    <h6 className="mt-2 mb-0">{folder.name}</h6>
-                    <small className="text-muted">
-                      {new Date(folder.createdAt).toLocaleDateString()}
-                    </small>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
+
+          {folders.filter(f => !f.isPinned).length > 0 && (
+            <>
+              <h5 className="mb-3">Folders</h5>
+              <div className="row g-3">
+                {folders.filter(f => !f.isPinned).map((folder) => (
+                  <div key={folder._id} className="col-md-3 col-sm-6">
+                    <div className="card folder-card h-100">
+                      <div className="card-body" onClick={() => openFolder(folder._id, folder.name)} style={{ cursor: 'pointer' }}>
+                        <div className="d-flex justify-content-between align-items-start mb-2">
+                          <i className="ri-folder-fill text-warning" style={{ fontSize: '2rem' }}></i>
+                          <div className="d-flex gap-1">
+                            <button
+                              className="file-pin-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleFolderPin(folder._id);
+                              }}
+                              disabled={pinningFolders.has(folder._id)}
+                              title={folder.isPinned ? 'Unpin folder' : 'Pin folder'}
+                            >
+                              {pinningFolders.has(folder._id) ? (
+                                <div className="spinner-border spinner-border-sm" role="status" />
+                              ) : (
+                                <i className={folder.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
+                              )}
+                            </button>
+                            <button
+                              className="file-pin-btn text-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFolderToDelete(folder);
+                                setShowDeleteFolderModal(true);
+                              }}
+                              title="Delete folder"
+                            >
+                              <i className="ri-delete-bin-line"></i>
+                            </button>
+                          </div>
+                        </div>
+                        <h6 className="mt-2 mb-0">{folder.name}</h6>
+                        <small className="text-muted">
+                          {new Date(folder.createdAt).toLocaleDateString()}
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -279,84 +333,151 @@ const FilesTab = () => {
           {/* Files Section */}
           {files.length > 0 && (
             <div>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">Files</h5>
-                <div className="d-flex gap-2 align-items-center">
-                  <small className="text-muted">Sort by:</small>
-                  <select 
-                    className="form-select form-select-sm" 
-                    style={{ width: 'auto' }}
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                  >
-                    <option value="updatedAt">Last Modified</option>
-                    <option value="createdAt">Date Created</option>
-                    <option value="title">Name</option>
-                    <option value="size">Size</option>
-                  </select>
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                    title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-                  >
-                    <i className={`ri-sort-${sortOrder === 'asc' ? 'asc' : 'desc'}`}></i>
-                  </button>
-                </div>
-              </div>
-              <div className="row g-3">
-              {files.map(file => (
-            <div key={file._id} className="col-12 col-md-6 col-lg-4">
-              <div className="card h-100 file-card" onClick={() => setViewingFile(file)}>
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <h5 className="card-title mb-0 file-title-truncate">{file.title}</h5>
-                    <div className="d-flex gap-1">
-                      <button
-                        className="file-pin-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTogglePin(file._id);
-                        }}
-                        disabled={pinningFiles.has(file._id)}
-                        title={file.isPinned ? 'Unpin file' : 'Pin file'}
+
+              {/* Pinned Files */}
+              {files.filter(f => f.isPinned).length > 0 && (
+                <>
+                  <h5 className="mb-3">Pinned Files</h5>
+                  <div className="row g-3 mb-4">
+                    {files.filter(f => f.isPinned).map(file => (
+                      <div key={file._id} className="col-12 col-md-6 col-lg-4">
+                        <div className="card h-100 file-card" onClick={() => setViewingFile(file)}>
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <h5 className="card-title mb-0 file-title-truncate">{file.title}</h5>
+                              <div className="d-flex gap-1">
+                                <button
+                                  className="file-pin-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePin(file._id);
+                                  }}
+                                  disabled={pinningFiles.has(file._id)}
+                                  title={file.isPinned ? 'Unpin file' : 'Pin file'}
+                                >
+                                  {pinningFiles.has(file._id) ? (
+                                    <div className="spinner-border spinner-border-sm" role="status" />
+                                  ) : (
+                                    <i className={file.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
+                                  )}
+                                </button>
+                                <button
+                                  className="file-pin-btn text-danger"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setViewingFile(file);
+                                    setShowDeleteModal(true);
+                                  }}
+                                  title="Delete file"
+                                >
+                                  <i className="ri-delete-bin-line"></i>
+                                </button>
+                              </div>
+                            </div>
+                            <p className="card-text text-muted small file-preview-text">
+                              {file.content.replace(/[#*`>\-\[\]]/g, '').substring(0, 100)}{file.content.length > 100 ? '...' : ''}
+                            </p>
+                            <div className="d-flex justify-content-between align-items-center text-muted small">
+                              <span>
+                                <i className="ri-time-line me-1"></i>
+                                {new Date(file.updatedAt).toLocaleDateString()}
+                              </span>
+                              <span>
+                                <i className="ri-file-text-line me-1"></i>
+                                {formatFileSize(file.content?.length || 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Other Files */}
+              {files.filter(f => !f.isPinned).length > 0 && (
+                <>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="mb-0">Files</h5>
+                    <div className="d-flex gap-2 align-items-center">
+                      <small className="text-muted">Sort by:</small>
+                      <select 
+                        className="form-select form-select-sm" 
+                        style={{ width: 'auto' }}
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
                       >
-                        {pinningFiles.has(file._id) ? (
-                          <div className="spinner-border spinner-border-sm" role="status" />
-                        ) : (
-                          <i className={file.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
-                        )}
-                      </button>
+                        <option value="updatedAt">Last Modified</option>
+                        <option value="createdAt">Date Created</option>
+                        <option value="title">Name</option>
+                        <option value="size">Size</option>
+                      </select>
                       <button
-                        className="file-pin-btn text-danger"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setViewingFile(file);
-                          setShowDeleteModal(true);
-                        }}
-                        title="Delete file"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
                       >
-                        <i className="ri-delete-bin-line"></i>
+                        <i className={`ri-sort-${sortOrder === 'asc' ? 'asc' : 'desc'}`}></i>
                       </button>
                     </div>
                   </div>
-                  <p className="card-text text-muted small file-preview-text">
-                    {file.content.replace(/[#*`>\-\[\]]/g, '').substring(0, 100)}{file.content.length > 100 ? '...' : ''}
-                  </p>
-                  <div className="d-flex justify-content-between align-items-center text-muted small">
-                    <span>
-                      <i className="ri-time-line me-1"></i>
-                      {new Date(file.updatedAt).toLocaleDateString()}
-                    </span>
-                    <span>
-                      <i className="ri-file-text-line me-1"></i>
-                      {formatFileSize(file.content?.length || 0)}
-                    </span>
+                  <div className="row g-3">
+                    {files.filter(f => !f.isPinned).map(file => (
+                      <div key={file._id} className="col-12 col-md-6 col-lg-4">
+                        <div className="card h-100 file-card" onClick={() => setViewingFile(file)}>
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <h5 className="card-title mb-0 file-title-truncate">{file.title}</h5>
+                              <div className="d-flex gap-1">
+                                <button
+                                  className="file-pin-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleTogglePin(file._id);
+                                  }}
+                                  disabled={pinningFiles.has(file._id)}
+                                  title={file.isPinned ? 'Unpin file' : 'Pin file'}
+                                >
+                                  {pinningFiles.has(file._id) ? (
+                                    <div className="spinner-border spinner-border-sm" role="status" />
+                                  ) : (
+                                    <i className={file.isPinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
+                                  )}
+                                </button>
+                                <button
+                                  className="file-pin-btn text-danger"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setViewingFile(file);
+                                    setShowDeleteModal(true);
+                                  }}
+                                  title="Delete file"
+                                >
+                                  <i className="ri-delete-bin-line"></i>
+                                </button>
+                              </div>
+                            </div>
+                            <p className="card-text text-muted small file-preview-text">
+                              {file.content.replace(/[#*`>\-\[\]]/g, '').substring(0, 100)}{file.content.length > 100 ? '...' : ''}
+                            </p>
+                            <div className="d-flex justify-content-between align-items-center text-muted small">
+                              <span>
+                                <i className="ri-time-line me-1"></i>
+                                {new Date(file.updatedAt).toLocaleDateString()}
+                              </span>
+                              <span>
+                                <i className="ri-file-text-line me-1"></i>
+                                {formatFileSize(file.content?.length || 0)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+                </>
+              )}
             </div>
           )}
         </>
@@ -402,9 +523,22 @@ const FilesTab = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => {
                   setShowCreateFolderModal(false);
                   setNewFolderName('');
-                }} disabled={operationLoading}>Cancel</button>
+                }} disabled={operationLoading}>
+                  <i className="ri-close-line"></i>
+                  <span className="d-none d-md-inline ms-2">Cancel</span>
+                </button>
                 <button type="button" className="btn btn-primary" onClick={handleCreateFolder} disabled={operationLoading}>
-                  {operationLoading ? 'Creating...' : <>Create <i className="ri-add-fill"></i></>}
+                  {operationLoading ? (
+                    <>
+                      <div className="spinner-border spinner-border-sm" role="status" />
+                      <span className="d-none d-md-inline ms-2">Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="ri-add-fill"></i>
+                      <span className="d-none d-md-inline ms-2">Create</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -431,10 +565,23 @@ const FilesTab = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => {
                   setShowCreateModal(false);
                   setNewFile({ title: '', content: '' });
-                }} disabled={operationLoading}>Cancel</button>
-                <button type="button" className="btn btn-primary" onClick={handleCreateFile} disabled={operationLoading}>
-                  {operationLoading ? 'Creating...' : <>Create <i className="ri-add-fill"></i></>}
-                </button>
+                }} disabled={operationLoading}>
+                    <i className="ri-close-line"></i>
+                    <span className="d-none d-md-inline ms-2">Cancel</span>
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={handleCreateFile} disabled={operationLoading}>
+                    {operationLoading ? (
+                      <>
+                        <div className="spinner-border spinner-border-sm" role="status" />
+                        <span className="d-none d-md-inline ms-2">Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <i className="ri-add-fill"></i>
+                        <span className="d-none d-md-inline ms-2">Create</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
               <div className="modal-body">
@@ -564,23 +711,39 @@ const FilesTab = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => {
                   setViewingFile(null);
                   setEditingFile(null);
-                }}>Close</button>
+                }}>
+                    <i className="ri-close-line"></i>
+                    <span className="d-none d-md-inline ms-2">Close</span>
+                  </button>
                   {editingFile ? (
                   <>
                   <button type="button" className="btn btn-primary" onClick={() => handleUpdateFile(editingFile._id, editingFile)} disabled={operationLoading}>
-                      <i className="ri-save-line"></i> {operationLoading ? 'Saving...' : 'Save'}
+                      {operationLoading ? (
+                        <>
+                          <div className="spinner-border spinner-border-sm" role="status" />
+                          <span className="d-none d-md-inline ms-2">Saving...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-save-line"></i>
+                          <span className="d-none d-md-inline ms-2">Save</span>
+                        </>
+                      )}
                     </button>
                     <button type="button" className="btn btn-danger" onClick={() => setEditingFile(null)} disabled={operationLoading}>
-                      <i className="ri-close-line"></i> Cancel
+                      <i className="ri-close-line"></i>
+                      <span className="d-none d-md-inline ms-2">Cancel</span>
                     </button>
                   </>
                 ) : (
                   <>
                    <button type="button" className="btn btn-primary" onClick={() => setEditingFile({ ...viewingFile })} disabled={operationLoading}>
-                      <i className="ri-edit-line"></i> Edit
+                      <i className="ri-edit-line"></i>
+                      <span className="d-none d-md-inline ms-2">Edit</span>
                     </button>
                     <button type="button" className="btn btn-danger" onClick={() => setShowDeleteModal(true)} disabled={operationLoading}>
-                      <i className="ri-delete-bin-line"></i> Delete
+                      <i className="ri-delete-bin-line"></i>
+                      <span className="d-none d-md-inline ms-2">Delete</span>
                     </button>
                   </>
                 )}

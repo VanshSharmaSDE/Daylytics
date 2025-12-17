@@ -76,10 +76,10 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update folder (rename or move)
+// Update folder (rename, move, or pin)
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { name, parentFolder } = req.body;
+    const { name, parentFolder, isPinned } = req.body;
     const folder = await Folder.findOne({ _id: req.params.id, user: req.user.id });
 
     if (!folder) {
@@ -110,6 +110,10 @@ router.put('/:id', auth, async (req, res) => {
       }
       
       folder.parentFolder = parentFolder || null;
+    }
+
+    if (isPinned !== undefined) {
+      folder.isPinned = isPinned;
     }
 
     await folder.save();

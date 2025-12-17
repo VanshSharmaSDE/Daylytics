@@ -2,13 +2,22 @@
 
 > A powerful daily task management app with built-in analytics to track your productivity.
 
-**Current Version:** `1.5.6` (Beta)
+**Current Version:** `1.5.7` (Beta)
 
 ---
 
 ## 🚀 Features
 
-### Version 1.5.6 (Current — Beta)
+### Version 1.5.7 (Current — Beta)
+- **Release Date:** December 18, 2025
+- **Patch & UX Improvements:**
+   - **📌 Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
+   - **📱 Mobile Button Fix** - Fixed button display on mobile screens: modal action buttons now show icons on small screens with text hidden for a compact layout.
+   - **🧩 UI Fixes** - Split files into pinned/unpinned lists and fixed a small key bug in the files listing.
+   - **🔧 Backend Fix (Folders)** - `PUT /api/folders/:id` now persists `isPinned`; folder pin/unpin operations are saved correctly.
+   - **📝 Misc** - Updated UI version strings to `v1.5.7`.
+
+### Version 1.5.6 (Previous — Beta)
 - **Release Date:** December 16, 2025
 - **Major Refactoring & Performance:**
    - **🎯 Centralized Data Management** - Created DataContext for all data operations
@@ -390,7 +399,16 @@ This creates a test user:
 
 ## 📦 Version History
 
-### v1.5.6 (Current - Beta)
+### v1.5.7 (Current - Beta)
+**Release Date:** December 18, 2025
+
+**Patch & UX Improvements:**
+- ✅ **Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
+- ✅ **UI Fixes** - Split files into pinned/unpinned lists and fixed a small key bug in the files listing.
+- ✅ **Backend Fix (Folders)** - `PUT /api/folders/:id` now persists `isPinned`; folder pin/unpin operations are saved correctly.
+- ✅ **Misc** - Updated UI version strings to `v1.5.7`.
+
+### v1.5.6 (Previous - Beta)
 **Release Date:** December 16, 2025
 
 **Major Refactoring & Performance:**

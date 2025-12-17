@@ -255,6 +255,17 @@ export const DataProvider = ({ children }) => {
     });
   };
 
+  const sortFolders = (foldersToSort) => {
+    return [...foldersToSort].sort((a, b) => {
+      // Pinned folders should come first
+      if (a.isPinned !== b.isPinned) {
+        return b.isPinned ? 1 : -1;
+      }
+      // Then sort by name
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const fetchFolders = async () => {
     const folderKey = currentFolder || 'root';
     
@@ -263,9 +274,10 @@ export const DataProvider = ({ children }) => {
       const response = await API.get('/api/folders', { params });
       const fetchedFolders = response.data;
       
-      folderCache.current[folderKey] = fetchedFolders;
-      setFolders(fetchedFolders);
-      return fetchedFolders;
+      const sorted = sortFolders(fetchedFolders);
+      folderCache.current[folderKey] = sorted;
+      setFolders(sorted);
+      return sorted;
     } catch (error) {
       addToast('error', 'Failed to load folders');
       return [];
@@ -449,14 +461,26 @@ export const DataProvider = ({ children }) => {
       return next;
     });
 
+    const folderKey = currentFolder || 'root';
+    const prevList = folderCache.current[folderKey] || folders;
+    // Optimistic update
+    const optimistic = prevList.map(f => (f._id === id ? { ...f, isPinned: !f.isPinned } : f));
+    const sortedOptimistic = sortFolders(optimistic);
+    folderCache.current[folderKey] = sortedOptimistic;
+    setFolders(sortedOptimistic);
+
     try {
-      const folder = folders.find(f => f._id === id);
+      const folder = prevList.find(f => f._id === id);
       if (!folder) return;
 
       await API.put(`/api/folders/${id}`, { isPinned: !folder.isPinned });
+      // Refresh to ensure canonical data
       await fetchFolders();
       addToast('success', folder.isPinned ? 'Folder unpinned' : 'Folder pinned');
     } catch (error) {
+      // Revert optimistic update
+      folderCache.current[folderKey] = prevList;
+      setFolders(sortFolders(prevList));
       addToast('error', 'Failed to update pin status');
     } finally {
       setPinningFolders(prev => {
