@@ -619,11 +619,29 @@ const fetchBucket = async (showLoader = false) => {
   }
 
   try {
-    const { data } = await import("../api/bucket").then((m) => m.listBucket());
+    const res = await import("../api/bucket").then((m) => m.listBucket());
+    const data = res?.data ?? res;
     setBucketFiles(data);
     return data;
   } catch (err) {
-    addToast("error", err?.response?.data?.msg || "Unable to load bucket");
+    console.error("fetchBucket error:", err);
+
+    // Improve error messages for common deployment issues
+    let msg = "Unable to load bucket";
+    const status = err?.response?.status;
+    const serverMsg = err?.response?.data?.msg;
+
+    if (status === 503) {
+      msg = "Bucket service unavailable (storage provider not configured)";
+    } else if (status === 401) {
+      msg = "Not authenticated. Please login again.";
+    } else if (serverMsg) {
+      msg = serverMsg;
+    } else if (err?.message) {
+      msg = err.message;
+    }
+
+    addToast("error", msg);
     return [];
   } finally {
     if (showLoader) {
@@ -661,10 +679,20 @@ const pushToBucket = async (formData, onUploadProgress) => {
 const pullFromBucket = async (id) => {
   // Use a local loader in the caller (BucketTab) instead of the global operation loader
   try {
-    const { data } = await import("../api/bucket").then((m) => m.pullBucket(id));
-    return data;
+    const res = await import("../api/bucket").then((m) => m.pullBucket(id));
+    return res?.data ?? res;
   } catch (err) {
-    addToast("error", err?.response?.data?.msg || "Unable to download file");
+    console.error("pullFromBucket error:", err);
+    let msg = "Unable to download file";
+    const status = err?.response?.status;
+    const serverMsg = err?.response?.data?.msg;
+
+    if (status === 503) msg = "File storage is not configured on the server";
+    else if (status === 401) msg = "Not authenticated. Please login again.";
+    else if (serverMsg) msg = serverMsg;
+    else if (err?.message) msg = err.message;
+
+    addToast("error", msg);
     throw err;
   }
 };
