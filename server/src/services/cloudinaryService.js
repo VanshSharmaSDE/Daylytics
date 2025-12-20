@@ -135,8 +135,14 @@ module.exports = {
   },
 
   generateDownloadUrl: (filePathOrUrl) => {
-    // Cloudinary already returns secure_url; if not configured, return original
+    // Ensure Cloudinary is configured before generating URLs
     const cld = initCloudinary();
+    if (!cld) {
+      throw new Error(
+        "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in environment variables"
+      );
+    }
+    // Cloudinary already returns secure_url in the stored URL
     return filePathOrUrl;
   },
 };

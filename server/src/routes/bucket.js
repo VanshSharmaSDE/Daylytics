@@ -102,10 +102,21 @@ router.get('/pull/:id', auth, async (req, res) => {
     if (!file) return res.status(404).json({ msg: 'Not found' });
     if (!file.uploadedBy.equals(req.user._id)) return res.status(403).json({ msg: 'Forbidden' });
 
-    const secureUrl = generateDownloadUrl(file.url, 300);
-    return res.json({ url: secureUrl });
+    try {
+      const secureUrl = generateDownloadUrl(file.url, 300);
+      return res.json({ url: secureUrl });
+    } catch (err) {
+      // Handle Cloudinary configuration errors specifically
+      if (err?.message && err.message.toLowerCase().includes('not configured')) {
+        console.error('Cloudinary configuration error:', err.message);
+        return res.status(503).json({ 
+          msg: 'File storage is not configured. Please contact administrator.' 
+        });
+      }
+      throw err;
+    }
   } catch (err) {
-    console.error(err);
+    console.error('Error in pull endpoint:', err);
     return res.status(500).json({ msg: 'Server error' });
   }
 });

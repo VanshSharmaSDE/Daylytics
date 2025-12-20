@@ -77,10 +77,9 @@ const BucketTab = () => {
       const res = await pullFromBucket(file._id);
       setViewFile({ ...file, url: res.url || res.data?.url });
     } catch (err) {
-      addToast(
-        "error",
-        err?.response?.data?.msg || "Unable to load file preview"
-      );
+      console.error('Error loading file preview:', err);
+      const errorMsg = err?.response?.data?.msg || err?.message || "Unable to load file preview";
+      addToast("error", errorMsg);
       setViewFile(null);
     } finally {
       setViewLoading(false);
