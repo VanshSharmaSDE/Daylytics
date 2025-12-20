@@ -655,12 +655,25 @@ const pushToBucket = async (formData, onUploadProgress) => {
   setOperationLoading(true);
   setOperationMessage("Uploading file...");
   try {
-    const { data } = await import("../api/bucket").then((m) =>
-      m.pushBucket(formData, {
+    const mod = await import("../api/bucket");
+    const pushFn = mod?.pushBucket || mod?.default?.pushBucket;
+    if (typeof pushFn !== 'function') {
+      console.warn('pushToBucket: pushBucket missing from module, falling back to direct API call');
+      // fallback to direct API call to preserve functionality
+      const { data } = await API.post('/api/bucket/push', formData, {
         headers: { "Content-Type": "multipart/form-data" },
         onUploadProgress,
-      })
-    );
+      });
+      setBucketFiles((prev) => [data, ...prev]);
+      addToast("success", "Uploaded to bucket");
+      return data;
+    }
+
+    const res = await pushFn(formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress,
+    });
+    const data = res?.data ?? res;
     // Update state locally to avoid refetch
     setBucketFiles((prev) => [data, ...prev]);
     addToast("success", "Uploaded to bucket");
@@ -702,7 +715,15 @@ const deleteFromBucket = async (id) => {
   setOperationLoading(true);
   setOperationMessage("Deleting file...");
   try {
-    await import("../api/bucket").then((m) => m.deleteBucket(id));
+    const mod = await import("../api/bucket");
+    const delFn = mod?.deleteBucket || mod?.default?.deleteBucket;
+    if (typeof delFn === 'function') {
+      await delFn(id);
+    } else {
+      console.warn('deleteFromBucket: deleteBucket missing from module, falling back to direct API call');
+      await API.delete(`/api/bucket/delete/${id}`);
+    }
+
     // Remove locally without refetching
     setBucketFiles((prev) => prev.filter((f) => f._id !== id));
     addToast("success", "Deleted from bucket");
