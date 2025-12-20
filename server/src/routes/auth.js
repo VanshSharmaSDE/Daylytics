@@ -49,9 +49,17 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me - return current user data including settings
 router.get('/me', auth, (req, res) => {
   if (!req.user) return res.status(404).json({ msg: 'User not found' });
-  const { _id: id, email, name, createdAt, settings } = req.user;
+  const { _id: id, email, name, createdAt, settings, storageUsed, storageLimit } = req.user;
   // include settings so clients can read persisted theme and other preferences
-  res.json({ id, email, name, createdAt, settings });
+  res.json({ 
+    id, 
+    email, 
+    name, 
+    createdAt, 
+    settings,
+    storageUsed: storageUsed || 0,
+    storageLimit: storageLimit || 100 * 1024 * 1024
+  });
 });
 
 // PUT /api/auth/settings - update user settings
@@ -105,12 +113,18 @@ router.put('/profile', auth, async (req, res) => {
     const { name, email } = req.body;
     if (!name && !email) return res.status(400).json({ msg: 'Nothing to update' });
 
+    if (name !== undefined) {
+      if (name.length > 30) {
+        return res.status(400).json({ msg: 'Name cannot exceed 30 characters' });
+      }
+      req.user.name = name;
+    }
+
     if (email) {
       const existing = await User.findOne({ email, _id: { $ne: req.user._id } });
       if (existing) return res.status(400).json({ msg: 'Email already in use' });
       req.user.email = email;
     }
-    if (name !== undefined) req.user.name = name;
 
     await req.user.save();
     res.json({ id: req.user._id, email: req.user.email, name: req.user.name });

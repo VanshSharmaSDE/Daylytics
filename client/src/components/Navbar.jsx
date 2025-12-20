@@ -5,6 +5,7 @@ const navItems = [
   { id: "tasks", label: "Tasks", icon: "ri-list-check-2" },
   { id: "analytics", label: "Analytics", icon: "ri-line-chart-line" },
   { id: "files", label: "Files", icon: "ri-file-text-line" },
+  { id: "bucket", label: "Bucket", icon: "ri-archive-line" },
 ];
 
 const Navbar = ({
@@ -71,20 +72,6 @@ const Navbar = ({
         <div className="nav-actions">
           <button
             type="button"
-            className="btn btn-sm btn-outline-primary d-none d-md-inline-flex"
-            onClick={onProfile}
-          >
-            Profile
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-danger d-none d-md-inline-flex"
-            onClick={onLogoutRequest}
-          >
-            Logout
-          </button>
-          <button
-            type="button"
             className="theme-toggle-btn d-none d-md-inline-flex"
             onClick={() => toggleTheme(nextTheme)}
             aria-label={`Switch to ${nextTheme} mode`}
@@ -95,6 +82,14 @@ const Navbar = ({
               }
               aria-hidden="true"
             ></i>
+          </button>
+          <button
+            type="button"
+            className="theme-toggle-btn d-none d-md-inline-flex"
+            onClick={onProfile}
+            aria-label="Settings"
+          >
+            <i className="ri-settings-3-line" aria-hidden="true"></i>
           </button>
           <button type="button" className="avatar-btn d-none d-md-inline-flex">
             {initials}
@@ -160,17 +155,8 @@ const Navbar = ({
                   onToggleMenu(false);
                 }}
               >
-                Profile
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline-danger"
-                onClick={() => {
-                  onLogoutRequest();
-                  onToggleMenu(false);
-                }}
-              >
-                Logout
+                <i className="ri-settings-3-line me-2"></i>
+                Settings
               </button>
             </div>
             {sidebarContent && (

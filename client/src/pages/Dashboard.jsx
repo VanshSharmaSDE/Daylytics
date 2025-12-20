@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import Navbar from "../components/Navbar";
@@ -8,22 +8,25 @@ import Modal from "../components/Modal";
 import FilesTab from "./FilesTab";
 import TasksTab from "./TasksTab";
 import AnalyticsTab from "./AnalyticsTab";
+import BucketTab from "./BucketTab";
+import Settings from "./Settings";
 
 const Dashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem("activeTab") || "tasks";
-  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { logout, user, refreshUser } = useAuth();
   const { globalLoading, operationLoading, operationMessage } = useData();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Save activeTab to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("activeTab", activeTab);
-  }, [activeTab]);
+  // Determine active tab from URL
+  const activeTab = location.pathname.split('/')[2] || 'tasks';
+
+  // Handle tab changes by navigating to new URL
+  const handleTabChange = (tab) => {
+    navigate(`/dashboard/${tab}`);
+  };
 
   const confirmLogout = () => {
     setShowLogoutModal(false);
@@ -36,8 +39,8 @@ const Dashboard = () => {
       <div className="container py-5 dashboard-shell d-flex flex-column">
         <Navbar
           activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onProfile={() => setShowProfileModal(true)}
+          onTabChange={handleTabChange}
+          onProfile={() => handleTabChange('settings')}
           onLogoutRequest={() => setShowLogoutModal(true)}
           user={user}
           mobileMenuOpen={mobileMenuOpen}
@@ -51,6 +54,12 @@ const Dashboard = () => {
         <div style={{ display: activeTab === "files" ? "block" : "none" }}>
           <FilesTab />
         </div>
+
+        <div style={{ display: activeTab === "bucket" ? "block" : "none" }}>
+          <BucketTab />
+        </div>
+
+        {activeTab === "settings" && <Settings />}
       </div>
 
       <ProfileModal
@@ -106,7 +115,7 @@ const Dashboard = () => {
           pointerEvents: "none",
         }}
       >
-        v1.5.7
+        v1.6.7
       </div>
 
       <div

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { marked } from 'marked';
 import Modal from '../components/Modal';
 import Loader from '../components/Loader';
+import API from '../api';
+import { useToast } from '../components/ToastProvider';
 
 const FilesTab = () => {
   const {
@@ -28,6 +30,8 @@ const FilesTab = () => {
     togglePinFolder,
     navigateToFolder,
     navigateToPath,
+    uploadFileAttachments,
+    deleteFileAttachment,
   } = useData();
 
   const [editingFile, setEditingFile] = useState(null);
@@ -39,6 +43,12 @@ const FilesTab = () => {
   const [folderToDelete, setFolderToDelete] = useState(null);
   const [newFile, setNewFile] = useState({ title: '', content: '' });
   const [newFolderName, setNewFolderName] = useState('');
+  const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [uploadingInlineImage, setUploadingInlineImage] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
+  const imageInputRef = React.useRef(null);
+  const imageInputRefEdit = React.useRef(null);
+  const { addToast } = useToast();
   
 
   // Helper function to format file size
@@ -51,9 +61,18 @@ const FilesTab = () => {
   };
 
   const handleCreateFile = async () => {
-    if (!newFile.title.trim()) return;
-    if (newFile.title.length > 200) return;
-    if (newFile.content.length > 50000) return;
+    if (!newFile.title.trim()) {
+      addToast('error', 'Please enter a file title');
+      return;
+    }
+    if (newFile.title.length > 200) {
+      addToast('error', 'Title is too long (max 200 characters)');
+      return;
+    }
+    if (newFile.content.length > 50000) {
+      addToast('error', 'Content is too long (max 50000 characters)');
+      return;
+    }
 
     const success = await createFile(newFile.title, newFile.content);
     if (success) {
@@ -114,6 +133,166 @@ const FilesTab = () => {
     navigateToPath(index);
   };
 
+  const uploadInlineImage = async (file, isEditing = false) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return null;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return null;
+    }
+
+    setUploadingInlineImage(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Include fileId if editing existing file
+      if (isEditing && editingFile?._id) {
+        formData.append('fileId', editingFile._id);
+      }
+      
+      const { data } = await API.post('/api/files/upload-inline', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setUploadingInlineImage(false);
+      return data.url;
+    } catch (err) {
+      setUploadingInlineImage(false);
+      return null;
+    }
+  };
+
+  const handleInlineImageUpload = async (e, isEditing = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Get cursor position before upload
+    const textareaId = isEditing ? 'edit-content' : 'create-content';
+    const textarea = document.getElementById(textareaId);
+    const cursorPosition = textarea?.selectionStart || 0;
+
+    // Upload the image
+    const url = await uploadInlineImage(file);
+    
+    if (url) {
+      // Create markdown with image alt text and URL
+      const imageMarkdown = `![image](${url})\n`;
+      
+      // Insert at cursor position
+      if (isEditing && editingFile) {
+        const newContent = 
+          editingFile.content.substring(0, cursorPosition) + 
+          imageMarkdown + 
+          editingFile.content.substring(cursorPosition);
+        setEditingFile({ ...editingFile, content: newContent });
+        
+        // Restore cursor position after state update
+        setTimeout(() => {
+          if (textarea) {
+            textarea.focus();
+            const newPos = cursorPosition + imageMarkdown.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      } else {
+        const newContent = 
+          newFile.content.substring(0, cursorPosition) + 
+          imageMarkdown + 
+          newFile.content.substring(cursorPosition);
+        setNewFile(prev => ({ ...prev, content: newContent }));
+        
+        // Restore cursor position after state update
+        setTimeout(() => {
+          if (textarea) {
+            textarea.focus();
+            const newPos = cursorPosition + imageMarkdown.length;
+            textarea.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      }
+    }
+
+    // Clear input
+    if (e.target) e.target.value = '';
+  };
+
+  const handleAttachmentUpload = async (fileId, attachmentFiles) => {
+    if (!attachmentFiles || attachmentFiles.length === 0) return;
+
+    setUploadingAttachments(true);
+    const result = await uploadFileAttachments(fileId, Array.from(attachmentFiles));
+    setUploadingAttachments(false);
+
+    if (result && viewingFile && viewingFile._id === fileId) {
+      const updatedFile = files.find(f => f._id === fileId);
+      if (updatedFile) {
+        setViewingFile(updatedFile);
+        if (editingFile && editingFile._id === fileId) {
+          setEditingFile(updatedFile);
+        }
+      }
+    }
+  };
+
+  const handleDeleteAttachment = async (fileId, attachmentId) => {
+    const success = await deleteFileAttachment(fileId, attachmentId);
+    
+    if (success && viewingFile && viewingFile._id === fileId) {
+      const updatedFile = files.find(f => f._id === fileId);
+      if (updatedFile) {
+        setViewingFile(updatedFile);
+        if (editingFile && editingFile._id === fileId) {
+          setEditingFile(updatedFile);
+        }
+      }
+    }
+  };
+
+  const renderAttachment = (attachment) => {
+    const isImage = attachment.mimeType?.startsWith('image/');
+    const isVideo = attachment.mimeType?.startsWith('video/');
+    const isPDF = attachment.mimeType === 'application/pdf';
+
+    if (isImage) {
+      return (
+        <img 
+          src={attachment.url} 
+          alt={attachment.originalName}
+          className="img-fluid rounded mb-2"
+          style={{ maxHeight: '300px', objectFit: 'contain' }}
+        />
+      );
+    } else if (isVideo) {
+      return (
+        <video 
+          src={attachment.url} 
+          controls
+          className="w-100 rounded mb-2"
+          style={{ maxHeight: '400px' }}
+        >
+          Your browser does not support the video tag.
+        </video>
+      );
+    } else if (isPDF) {
+      return (
+        <div className="border rounded p-3 mb-2">
+          <i className="ri-file-pdf-line text-danger" style={{ fontSize: '2rem' }}></i>
+          <p className="mb-0 mt-2">{attachment.originalName}</p>
+        </div>
+      );
+    } else {
+      return (
+        <div className="border rounded p-3 mb-2">
+          <i className="ri-file-line text-muted" style={{ fontSize: '2rem' }}></i>
+          <p className="mb-0 mt-2">{attachment.originalName}</p>
+        </div>
+      );
+    }
+  };
+
 
   const applyFormat = (format, file, isEditing = false) => {
     const textarea = document.getElementById(isEditing ? 'edit-content' : 'create-content');
@@ -162,6 +341,20 @@ const FilesTab = () => {
       textarea.scrollTop = scrollTop; // Restore scroll position
     }, 0);
   };
+
+  // Add click handlers to markdown images for fullscreen view
+  useEffect(() => {
+    const handleImageClick = (e) => {
+      if (e.target.tagName === 'IMG' && e.target.closest('.markdown-preview')) {
+        e.preventDefault();
+        e.stopPropagation();
+        setFullscreenImage(e.target.src);
+      }
+    };
+
+    document.addEventListener('click', handleImageClick, true);
+    return () => document.removeEventListener('click', handleImageClick, true);
+  }, []);
 
   return (
     <>
@@ -668,6 +861,29 @@ const FilesTab = () => {
                         <i className="ri-separator"></i>
                       </button>
                     </div>
+
+                    <div className="btn-group btn-group-sm">
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-primary" 
+                        onClick={() => imageInputRef.current?.click()} 
+                        title="Insert Image"
+                        disabled={uploadingInlineImage}
+                      >
+                        {uploadingInlineImage ? (
+                          <div className="spinner-border spinner-border-sm" role="status" />
+                        ) : (
+                          <i className="ri-image-add-line"></i>
+                        )}
+                      </button>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        onChange={(e) => handleInlineImageUpload(e, false)}
+                      />
+                    </div>
                   </div>
                   
                   <textarea
@@ -821,6 +1037,29 @@ const FilesTab = () => {
                           <i className="ri-separator"></i>
                         </button>
                       </div>
+
+                      <div className="btn-group btn-group-sm">
+                        <button 
+                          type="button" 
+                          className="btn btn-outline-primary" 
+                          onClick={() => imageInputRefEdit.current?.click()} 
+                          title="Insert Image"
+                          disabled={uploadingInlineImage}
+                        >
+                          {uploadingInlineImage ? (
+                            <div className="spinner-border spinner-border-sm" role="status" />
+                          ) : (
+                            <i className="ri-image-add-line"></i>
+                          )}
+                        </button>
+                        <input
+                          ref={imageInputRefEdit}
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) => handleInlineImageUpload(e, true)}
+                        />
+                      </div>
                     </div>
                     
                     <textarea
@@ -836,7 +1075,7 @@ const FilesTab = () => {
                 ) : (
                   <div className="file-content">
                     <div 
-                      className="markdown-preview"
+                      className="markdown-preview markdown-body"
                       dangerouslySetInnerHTML={{ __html: marked(viewingFile.content) }}
                     />
                   </div>
@@ -913,6 +1152,68 @@ const FilesTab = () => {
         <p className="mb-0">Are you sure you want to delete folder "{folderToDelete?.name}"?</p>
         <p className="mb-0 text-warning"><small>Note: Folder must be empty (no files or subfolders) to be deleted.</small></p>
       </Modal>
+
+      {/* Fullscreen Image Modal */}
+      {fullscreenImage && (
+        <div 
+          className="fullscreen-image-overlay" 
+          onClick={() => setFullscreenImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            cursor: 'pointer',
+            padding: '20px'
+          }}
+        >
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setFullscreenImage(null);
+            }}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              color: 'white',
+              fontSize: '2rem',
+              cursor: 'pointer',
+              zIndex: 100000,
+              borderRadius: '50%',
+              width: '50px',
+              height: '50px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+          >
+            <i className="ri-close-line"></i>
+          </button>
+          <img 
+            src={fullscreenImage} 
+            alt="Fullscreen view"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '8px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 };

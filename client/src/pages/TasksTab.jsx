@@ -20,6 +20,8 @@ const TasksTab = ({ user }) => {
     updateTask,
     deleteTask,
     deleteAllTasks,
+    uploadTaskImage,
+    deleteTaskImage,
   } = useData();
 
   const [title, setTitle] = useState("");
@@ -27,6 +29,8 @@ const TasksTab = ({ user }) => {
   const [editTitle, setEditTitle] = useState("");
   const [viewingTask, setViewingTask] = useState(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(null);
+  const [deletingImage, setDeletingImage] = useState(null);
 
   const formatTimestamp = (value) => {
     const options = {
@@ -66,12 +70,62 @@ const TasksTab = ({ user }) => {
     await deleteAllTasks();
   };
 
+  const handleImageUpload = async (taskId, file) => {
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return;
+    }
+
+    // Validate size (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return;
+    }
+
+    setUploadingImage(taskId);
+    const success = await uploadTaskImage(taskId, file);
+    setUploadingImage(null);
+
+    // Update viewing task if it's the current one
+    if (viewingTask && viewingTask._id === taskId) {
+      const updatedTask = tasks.find(t => t._id === taskId);
+      if (updatedTask) {
+        setViewingTask(updatedTask);
+      }
+    }
+  };
+
+  const handleDeleteImage = async (taskId) => {
+    setDeletingImage(taskId);
+    const success = await deleteTaskImage(taskId);
+    setDeletingImage(null);
+    
+    // Update viewing task if it's the current one
+    if (viewingTask && viewingTask._id === taskId) {
+      const updatedTask = tasks.find(t => t._id === taskId);
+      if (updatedTask) {
+        setViewingTask(updatedTask);
+      }
+    }
+  };
+
   return (
     <>
       <div className="tasks-tab">
         {/* Header - Mobile */}
         <div className="d-flex d-md-none justify-content-between align-items-center mb-3">
           <h2 className="mb-0">Tasks</h2>
+          {tasks.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-sm"
+              onClick={() => setShowDeleteAllModal(true)}
+              title="Delete all tasks"
+            >
+              <i className="ri-delete-bin-line"></i>
+            </button>
+          )}
         </div>
 
         {/* Mobile Date Controls */}
@@ -365,6 +419,68 @@ const TasksTab = ({ user }) => {
                 {viewingTask.title}
               </p>
             </div>
+            
+            {/* Image Attachment Section */}
+            <div className="mb-3">
+              <label className="form-label text-muted small">Attachment</label>
+              {viewingTask.attachment && viewingTask.attachment.url ? (
+                <div>
+                  <img 
+                    src={viewingTask.attachment.url} 
+                    alt={viewingTask.attachment.originalName || 'Task attachment'}
+                    className="img-fluid rounded mb-2"
+                    style={{ maxHeight: '400px', objectFit: 'contain' }}
+                  />
+                  <div className="d-flex gap-2">
+                    <a 
+                      href={viewingTask.attachment.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn btn-sm btn-outline-primary"
+                    >
+                      <i className="ri-external-link-line"></i> Open
+                    </a>
+                    <button
+                      className="btn btn-sm btn-outline-danger"
+                      onClick={() => handleDeleteImage(viewingTask._id)}
+                      disabled={deletingImage === viewingTask._id}
+                    >
+                      {deletingImage === viewingTask._id ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          Removing...
+                        </>
+                      ) : (
+                        <>
+                          <i className="ri-delete-bin-line"></i> Remove
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="form-control"
+                    id={`task-image-${viewingTask._id}`}
+                    onChange={(e) => e.target.files && handleImageUpload(viewingTask._id, e.target.files[0])}
+                    disabled={uploadingImage === viewingTask._id}
+                  />
+                  <small className="text-muted">Maximum file size: 10MB. Only images allowed.</small>
+                  {uploadingImage === viewingTask._id && (
+                    <div className="mt-2">
+                      <div className="spinner-border spinner-border-sm" role="status">
+                        <span className="visually-hidden">Uploading...</span>
+                      </div>
+                      <span className="ms-2">Uploading...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="mb-0">
               <label className="form-label text-muted small">Created</label>
               <p className="mb-0">{formatTimestamp(viewingTask.createdAt)}</p>

@@ -7,6 +7,21 @@ const fileSchema = new mongoose.Schema({
   content: { type: String, default: '', maxlength: 50000 },
   isPinned: { type: Boolean, default: false },
   tags: [{ type: String, maxlength: 30 }],
+  attachments: [{
+    fileId: { type: String, required: true },
+    url: { type: String, required: true },
+    originalName: { type: String, required: true },
+    size: { type: Number },
+    mimeType: { type: String },
+    resourceType: { type: String }
+  }],
+  inlineImages: [{
+    fileId: { type: String, required: true },
+    url: { type: String, required: true },
+    originalName: { type: String },
+    size: { type: Number },
+    uploadedAt: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 // Index for better query performance

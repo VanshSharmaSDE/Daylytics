@@ -1,14 +1,20 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import API from '../api';
-import { useToast } from '../components/ToastProvider';
-import { useAuth } from './AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import API from "../api";
+import { useToast } from "../components/ToastProvider";
+import { useAuth } from "./AuthContext";
 
 const DataContext = createContext();
 
 export const useData = () => {
   const context = useContext(DataContext);
   if (!context) {
-    throw new Error('useData must be used within a DataProvider');
+    throw new Error("useData must be used within a DataProvider");
   }
   return context;
 };
@@ -18,10 +24,10 @@ const formatDate = (d = new Date()) => d.toISOString().slice(0, 10);
 export const DataProvider = ({ children }) => {
   const { addToast } = useToast();
   const { user } = useAuth();
-  
+
   // Global loading state
   const [globalLoading, setGlobalLoading] = useState(true);
-  
+
   // Task state
   const [tasks, setTasks] = useState([]);
   const [date, setDate] = useState(formatDate());
@@ -29,11 +35,11 @@ export const DataProvider = ({ children }) => {
   const [submittingTask, setSubmittingTask] = useState(false);
   const [updatingTasks, setUpdatingTasks] = useState(() => new Set());
   const [deletingTasks, setDeletingTasks] = useState(() => new Set());
-  
+
   // Analytics state
   const [archives, setArchives] = useState([]);
   const [archivesLoading, setArchivesLoading] = useState(false);
-  
+
   // Files state
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -42,16 +48,20 @@ export const DataProvider = ({ children }) => {
   const [filesLoading, setFilesLoading] = useState(false);
   const [navigating, setNavigating] = useState(false);
   const [operationLoading, setOperationLoading] = useState(false);
-  const [operationMessage, setOperationMessage] = useState('');
+  const [operationMessage, setOperationMessage] = useState("");
   const [pinningFiles, setPinningFiles] = useState(() => new Set());
   const [pinningFolders, setPinningFolders] = useState(() => new Set());
-  const [sortBy, setSortBy] = useState('updatedAt');
-  const [sortOrder, setSortOrder] = useState('desc');
-  
+  const [sortBy, setSortBy] = useState("updatedAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+
+  // Bucket state
+  const [bucketFiles, setBucketFiles] = useState([]);
+  const [bucketLoading, setBucketLoading] = useState(false);
+
   // Profile state
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
-  
+
   const hasLoadedInitially = useRef(false);
   const hasLoadedPreferences = useRef(false);
   const folderCache = useRef({});
@@ -60,15 +70,17 @@ export const DataProvider = ({ children }) => {
   // ========================
   // TASK OPERATIONS
   // ========================
-  
+
   const fetchTasks = async (targetDate = date, showLoader = false) => {
     if (showLoader) setTasksLoading(true);
     try {
-      const { data } = await API.get('/api/tasks', { params: { date: targetDate } });
+      const { data } = await API.get("/api/tasks", {
+        params: { date: targetDate },
+      });
       setTasks(data);
       return data;
     } catch (err) {
-      addToast('error', 'Unable to load tasks');
+      addToast("error", "Unable to load tasks");
       return [];
     } finally {
       if (showLoader) setTasksLoading(false);
@@ -79,12 +91,12 @@ export const DataProvider = ({ children }) => {
     if (!title) return false;
     try {
       setSubmittingTask(true);
-      const { data } = await API.post('/api/tasks', { title, date });
-      setTasks(prev => [...prev, data]);
-      addToast('success', 'Task added');
+      const { data } = await API.post("/api/tasks", { title, date });
+      setTasks((prev) => [...prev, data]);
+      addToast("success", "Task added");
       return true;
     } catch (err) {
-      addToast('error', err.response?.data?.msg || 'Unable to add task');
+      addToast("error", err.response?.data?.msg || "Unable to add task");
       return false;
     } finally {
       setSubmittingTask(false);
@@ -94,7 +106,7 @@ export const DataProvider = ({ children }) => {
   const toggleTask = async (id) => {
     if (updatingTasks.has(id)) return;
 
-    setUpdatingTasks(prev => {
+    setUpdatingTasks((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
@@ -102,11 +114,13 @@ export const DataProvider = ({ children }) => {
 
     try {
       await API.patch(`/api/tasks/${id}`);
-      setTasks(prev => prev.map(t => t._id === id ? { ...t, done: !t.done } : t));
+      setTasks((prev) =>
+        prev.map((t) => (t._id === id ? { ...t, done: !t.done } : t))
+      );
     } catch (err) {
-      addToast('error', 'Unable to update task');
+      addToast("error", "Unable to update task");
     } finally {
-      setUpdatingTasks(prev => {
+      setUpdatingTasks((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -118,10 +132,10 @@ export const DataProvider = ({ children }) => {
     try {
       await API.put(`/api/tasks/${id}`, updates);
       await fetchTasks(date);
-      addToast('success', 'Task updated');
+      addToast("success", "Task updated");
       return true;
     } catch (err) {
-      addToast('error', err.response?.data?.msg || 'Unable to update task');
+      addToast("error", err.response?.data?.msg || "Unable to update task");
       return false;
     }
   };
@@ -129,7 +143,7 @@ export const DataProvider = ({ children }) => {
   const deleteTask = async (id) => {
     if (deletingTasks.has(id)) return;
 
-    setDeletingTasks(prev => {
+    setDeletingTasks((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
@@ -137,12 +151,12 @@ export const DataProvider = ({ children }) => {
 
     try {
       await API.delete(`/api/tasks/${id}`);
-      setTasks(prev => prev.filter(t => t._id !== id));
-      addToast('success', 'Task removed');
+      setTasks((prev) => prev.filter((t) => t._id !== id));
+      addToast("success", "Task removed");
     } catch (err) {
-      addToast('error', 'Unable to delete task');
+      addToast("error", "Unable to delete task");
     } finally {
-      setDeletingTasks(prev => {
+      setDeletingTasks((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -154,24 +168,55 @@ export const DataProvider = ({ children }) => {
     try {
       const { data } = await API.delete(`/api/tasks?date=${date}`);
       setTasks([]);
-      addToast('success', `Deleted ${data.count} tasks`);
+      addToast("success", `Deleted ${data.count} tasks`);
     } catch (err) {
-      addToast('error', 'Unable to delete all tasks');
+      addToast("error", "Unable to delete all tasks");
+    }
+  };
+
+  const uploadTaskImage = async (taskId, imageFile) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', imageFile);
+      
+      const { data } = await API.post(`/api/tasks/${taskId}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      // Update task in state
+      setTasks(prev => prev.map(t => t._id === taskId ? data : t));
+      addToast('success', 'Image attached successfully');
+      return true;
+    } catch (err) {
+      addToast('error', err.response?.data?.msg || 'Failed to upload image');
+      return false;
+    }
+  };
+
+  const deleteTaskImage = async (taskId) => {
+    try {
+      const { data } = await API.delete(`/api/tasks/${taskId}/upload`);
+      setTasks(prev => prev.map(t => t._id === taskId ? data.task : t));
+      addToast('success', 'Image removed');
+      return true;
+    } catch (err) {
+      addToast('error', 'Failed to remove image');
+      return false;
     }
   };
 
   // ========================
   // ANALYTICS OPERATIONS
   // ========================
-  
+
   const fetchArchives = async (showLoader = false) => {
     if (showLoader) setArchivesLoading(true);
     try {
-      const { data } = await API.get('/api/archive');
+      const { data } = await API.get("/api/archive");
       setArchives(data);
       return data;
     } catch (err) {
-      addToast('error', 'Unable to load archives');
+      addToast("error", "Unable to load archives");
       return [];
     } finally {
       if (showLoader) setArchivesLoading(false);
@@ -181,16 +226,16 @@ export const DataProvider = ({ children }) => {
   // ========================
   // PROFILE OPERATIONS
   // ========================
-  
+
   const updateProfile = async (name, email, onUpdated) => {
     try {
       setSavingProfile(true);
-      await API.put('/api/auth/profile', { name, email });
-      addToast('success', 'Profile updated');
+      await API.put("/api/auth/profile", { name, email });
+      addToast("success", "Profile updated");
       if (onUpdated) await onUpdated();
       return true;
     } catch (err) {
-      addToast('error', err.response?.data?.msg || 'Unable to update profile');
+      addToast("error", err.response?.data?.msg || "Unable to update profile");
       return false;
     } finally {
       setSavingProfile(false);
@@ -199,23 +244,24 @@ export const DataProvider = ({ children }) => {
 
   const updatePassword = async (currentPassword, newPassword) => {
     if (!currentPassword || !newPassword) {
-      addToast('error', 'Please fill in both password fields');
+      addToast("error", "Please fill in both password fields");
       return false;
     }
 
     if (newPassword.length < 6) {
-      addToast('error', 'New password must be at least 6 characters');
+      addToast("error", "New password must be at least 6 characters");
       return false;
     }
 
     try {
       setSavingPassword(true);
-      await API.put('/api/auth/password', { currentPassword, newPassword });
-      addToast('success', 'Password updated successfully');
+      await API.put("/api/auth/password", { currentPassword, newPassword });
+      addToast("success", "Password updated successfully");
       return true;
     } catch (err) {
-      const errorMsg = err.response?.data?.msg || err.message || 'Unable to update password';
-      addToast('error', errorMsg);
+      const errorMsg =
+        err.response?.data?.msg || err.message || "Unable to update password";
+      addToast("error", errorMsg);
       return false;
     } finally {
       setSavingPassword(false);
@@ -225,7 +271,7 @@ export const DataProvider = ({ children }) => {
   // ========================
   // FILE OPERATIONS
   // ========================
-  
+
   const sortFiles = (filesToSort) => {
     return [...filesToSort].sort((a, b) => {
       if (a.isPinned !== b.isPinned) {
@@ -233,25 +279,25 @@ export const DataProvider = ({ children }) => {
       }
 
       let compareValue = 0;
-      
-      switch(sortBy) {
-        case 'title':
+
+      switch (sortBy) {
+        case "title":
           compareValue = a.title.localeCompare(b.title);
           break;
-        case 'createdAt':
+        case "createdAt":
           compareValue = new Date(a.createdAt) - new Date(b.createdAt);
           break;
-        case 'updatedAt':
+        case "updatedAt":
           compareValue = new Date(a.updatedAt) - new Date(b.updatedAt);
           break;
-        case 'size':
+        case "size":
           compareValue = (a.content?.length || 0) - (b.content?.length || 0);
           break;
         default:
           compareValue = new Date(b.updatedAt) - new Date(a.updatedAt);
       }
-      
-      return sortOrder === 'asc' ? compareValue : -compareValue;
+
+      return sortOrder === "asc" ? compareValue : -compareValue;
     });
   };
 
@@ -267,36 +313,38 @@ export const DataProvider = ({ children }) => {
   };
 
   const fetchFolders = async () => {
-    const folderKey = currentFolder || 'root';
-    
+    const folderKey = currentFolder || "root";
+
     try {
       const params = currentFolder ? { parentFolder: currentFolder } : {};
-      const response = await API.get('/api/folders', { params });
+      const response = await API.get("/api/folders", { params });
       const fetchedFolders = response.data;
-      
+
       const sorted = sortFolders(fetchedFolders);
       folderCache.current[folderKey] = sorted;
       setFolders(sorted);
       return sorted;
     } catch (error) {
-      addToast('error', 'Failed to load folders');
+      addToast("error", "Failed to load folders");
       return [];
     }
   };
 
   const fetchFiles = async () => {
-    const folderKey = currentFolder || 'root';
-    
+    const folderKey = currentFolder || "root";
+
     try {
-      const params = currentFolder ? { folder: currentFolder } : { folder: 'null' };
-      const response = await API.get('/api/files', { params });
+      const params = currentFolder
+        ? { folder: currentFolder }
+        : { folder: "null" };
+      const response = await API.get("/api/files", { params });
       const fetchedFiles = sortFiles(response.data);
-      
+
       fileCache.current[folderKey] = fetchedFiles;
       setFiles(fetchedFiles);
       return fetchedFiles;
     } catch (error) {
-      addToast('error', 'Failed to load files');
+      addToast("error", "Failed to load files");
       return [];
     }
   };
@@ -304,82 +352,82 @@ export const DataProvider = ({ children }) => {
   const createFile = async (title, content) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Creating file...');
-      
+      setOperationMessage("Creating file...");
+
       const payload = { title, content };
       if (currentFolder) {
         payload.folder = currentFolder;
       }
-      
-      const response = await API.post('/api/files', payload);
+
+      const response = await API.post("/api/files", payload);
       await fetchFiles();
-      addToast('success', 'File created successfully');
+      addToast("success", "File created successfully");
       return response.data;
     } catch (error) {
-      addToast('error', error.response?.data?.msg || 'Failed to create file');
+      addToast("error", error.response?.data?.msg || "Failed to create file");
       return null;
     } finally {
       setOperationLoading(false);
-      setOperationMessage('');
+      setOperationMessage("");
     }
   };
 
   const updateFile = async (id, updates) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Updating file...');
-      
+      setOperationMessage("Updating file...");
+
       await API.put(`/api/files/${id}`, updates);
       await fetchFiles();
-      addToast('success', 'File updated successfully');
+      addToast("success", "File updated successfully");
       return true;
     } catch (error) {
-      addToast('error', error.response?.data?.msg || 'Failed to update file');
+      addToast("error", error.response?.data?.msg || "Failed to update file");
       return false;
     } finally {
       setOperationLoading(false);
-      setOperationMessage('');
+      setOperationMessage("");
     }
   };
 
   const deleteFile = async (id) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Deleting file...');
-      
+      setOperationMessage("Deleting file...");
+
       await API.delete(`/api/files/${id}`);
       await fetchFiles();
-      addToast('success', 'File deleted successfully');
+      addToast("success", "File deleted successfully");
       return true;
     } catch (error) {
-      addToast('error', 'Failed to delete file');
+      addToast("error", "Failed to delete file");
       return false;
     } finally {
       setOperationLoading(false);
-      setOperationMessage('');
+      setOperationMessage("");
     }
   };
 
   const togglePinFile = async (id) => {
     if (pinningFiles.has(id)) return;
 
-    setPinningFiles(prev => {
+    setPinningFiles((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
     });
 
     try {
-      const file = files.find(f => f._id === id);
+      const file = files.find((f) => f._id === id);
       if (!file) return;
 
       await API.put(`/api/files/${id}`, { isPinned: !file.isPinned });
       await fetchFiles();
-      addToast('success', file.isPinned ? 'File unpinned' : 'File pinned');
+      addToast("success", file.isPinned ? "File unpinned" : "File pinned");
     } catch (error) {
-      addToast('error', 'Failed to update pin status');
+      addToast("error", "Failed to update pin status");
     } finally {
-      setPinningFiles(prev => {
+      setPinningFiles((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -387,22 +435,25 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const createFolder = async (name) => {
+  const uploadFileAttachments = async (fileId, attachmentFiles) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Creating folder...');
-      
-      const payload = { name };
-      if (currentFolder) {
-        payload.parentFolder = currentFolder;
+      setOperationMessage('Uploading attachments...');
+
+      const formData = new FormData();
+      for (const file of attachmentFiles) {
+        formData.append('files', file);
       }
-      
-      const response = await API.post('/api/folders', payload);
-      await fetchFolders();
-      addToast('success', 'Folder created successfully');
-      return response.data;
-    } catch (error) {
-      addToast('error', error.response?.data?.msg || 'Failed to create folder');
+
+      const { data } = await API.post(`/api/files/${fileId}/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      await fetchFiles();
+      addToast('success', `${attachmentFiles.length} file(s) attached successfully`);
+      return data;
+    } catch (err) {
+      addToast('error', err.response?.data?.msg || 'Failed to upload attachments');
       return null;
     } finally {
       setOperationLoading(false);
@@ -410,80 +461,126 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const renameFolder = async (id, newName) => {
+  const deleteFileAttachment = async (fileId, attachmentId) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Renaming folder...');
-      
-      await API.put(`/api/folders/${id}`, { name: newName });
-      await fetchFolders();
-      addToast('success', 'Folder renamed successfully');
+      setOperationMessage('Removing attachment...');
+
+      await API.delete(`/api/files/${fileId}/attachments/${attachmentId}`);
+      await fetchFiles();
+      addToast('success', 'Attachment removed');
       return true;
-    } catch (error) {
-      addToast('error', error.response?.data?.msg || 'Failed to rename folder');
+    } catch (err) {
+      addToast('error', 'Failed to remove attachment');
       return false;
     } finally {
       setOperationLoading(false);
       setOperationMessage('');
+    }
+  };
+
+  const createFolder = async (name) => {
+    try {
+      setOperationLoading(true);
+      setOperationMessage("Creating folder...");
+
+      const payload = { name };
+      if (currentFolder) {
+        payload.parentFolder = currentFolder;
+      }
+
+      const response = await API.post("/api/folders", payload);
+      await fetchFolders();
+      addToast("success", "Folder created successfully");
+      return response.data;
+    } catch (error) {
+      addToast("error", error.response?.data?.msg || "Failed to create folder");
+      return null;
+    } finally {
+      setOperationLoading(false);
+      setOperationMessage("");
+    }
+  };
+
+  const renameFolder = async (id, newName) => {
+    try {
+      setOperationLoading(true);
+      setOperationMessage("Renaming folder...");
+
+      await API.put(`/api/folders/${id}`, { name: newName });
+      await fetchFolders();
+      addToast("success", "Folder renamed successfully");
+      return true;
+    } catch (error) {
+      addToast("error", error.response?.data?.msg || "Failed to rename folder");
+      return false;
+    } finally {
+      setOperationLoading(false);
+      setOperationMessage("");
     }
   };
 
   const deleteFolder = async (id) => {
     try {
       setOperationLoading(true);
-      setOperationMessage('Deleting folder...');
-      
+      setOperationMessage("Deleting folder...");
+
       await API.delete(`/api/folders/${id}`);
-      
+
       // Invalidate all caches as folder structure changed
       folderCache.current = {};
       fileCache.current = {};
-      
+
       await fetchFolders();
       await fetchFiles();
-      addToast('success', 'Folder deleted successfully');
+      addToast("success", "Folder deleted successfully");
       return true;
     } catch (error) {
-      addToast('error', error.response?.data?.msg || 'Failed to delete folder');
+      addToast("error", error.response?.data?.msg || "Failed to delete folder");
       return false;
     } finally {
       setOperationLoading(false);
-      setOperationMessage('');
+      setOperationMessage("");
     }
   };
 
   const togglePinFolder = async (id) => {
     if (pinningFolders.has(id)) return;
 
-    setPinningFolders(prev => {
+    setPinningFolders((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
     });
 
-    const folderKey = currentFolder || 'root';
+    const folderKey = currentFolder || "root";
     const prevList = folderCache.current[folderKey] || folders;
     // Optimistic update
-    const optimistic = prevList.map(f => (f._id === id ? { ...f, isPinned: !f.isPinned } : f));
+    const optimistic = prevList.map((f) =>
+      f._id === id ? { ...f, isPinned: !f.isPinned } : f
+    );
     const sortedOptimistic = sortFolders(optimistic);
     folderCache.current[folderKey] = sortedOptimistic;
     setFolders(sortedOptimistic);
 
     try {
-      const folder = prevList.find(f => f._id === id);
+      const folder = prevList.find((f) => f._id === id);
       if (!folder) return;
 
       await API.put(`/api/folders/${id}`, { isPinned: !folder.isPinned });
       // Refresh to ensure canonical data
       await fetchFolders();
-      addToast('success', folder.isPinned ? 'Folder unpinned' : 'Folder pinned');
+      addToast(
+        "success",
+        folder.isPinned ? "Folder unpinned" : "Folder pinned"
+      );
     } catch (error) {
       // Revert optimistic update
       folderCache.current[folderKey] = prevList;
       setFolders(sortFolders(prevList));
-      addToast('error', 'Failed to update pin status');
+      addToast("error", "Failed to update pin status");
     } finally {
-      setPinningFolders(prev => {
+      setPinningFolders((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -497,7 +594,7 @@ export const DataProvider = ({ children }) => {
       setFolderPath([]);
     } else {
       setCurrentFolder(folderId);
-      setFolderPath(prev => [...prev, { id: folderId, name: folderName }]);
+      setFolderPath((prev) => [...prev, { id: folderId, name: folderName }]);
     }
   };
 
@@ -513,16 +610,98 @@ export const DataProvider = ({ children }) => {
   };
 
   // ========================
+// BUCKET OPERATIONS
+// ========================
+
+const fetchBucket = async (showLoader = false) => {
+  if (showLoader) {
+    setBucketLoading(true);
+  }
+
+  try {
+    const { data } = await import("../api/bucket").then((m) => m.listBucket());
+    setBucketFiles(data);
+    return data;
+  } catch (err) {
+    addToast("error", err?.response?.data?.msg || "Unable to load bucket");
+    return [];
+  } finally {
+    if (showLoader) {
+      setBucketLoading(false);
+    }
+  }
+};
+
+const pushToBucket = async (formData, onUploadProgress) => {
+  console.debug('pushToBucket: start');
+  setOperationLoading(true);
+  setOperationMessage("Uploading file...");
+  try {
+    const { data } = await import("../api/bucket").then((m) =>
+      m.pushBucket(formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress,
+      })
+    );
+    // Update state locally to avoid refetch
+    setBucketFiles((prev) => [data, ...prev]);
+    addToast("success", "Uploaded to bucket");
+    return data;
+  } catch (err) {
+    console.error('pushToBucket error', err);
+    addToast("error", err?.response?.data?.msg || "Upload failed");
+    throw err;
+  } finally {
+    setOperationLoading(false);
+    setOperationMessage("");
+    console.debug('pushToBucket: end');
+  }
+};
+
+const pullFromBucket = async (id) => {
+  // Use a local loader in the caller (BucketTab) instead of the global operation loader
+  try {
+    const { data } = await import("../api/bucket").then((m) => m.pullBucket(id));
+    return data;
+  } catch (err) {
+    addToast("error", err?.response?.data?.msg || "Unable to download file");
+    throw err;
+  }
+};
+
+const deleteFromBucket = async (id) => {
+  console.debug('deleteFromBucket: start', id);
+  setOperationLoading(true);
+  setOperationMessage("Deleting file...");
+  try {
+    await import("../api/bucket").then((m) => m.deleteBucket(id));
+    // Remove locally without refetching
+    setBucketFiles((prev) => prev.filter((f) => f._id !== id));
+    addToast("success", "Deleted from bucket");
+    return true;
+  } catch (err) {
+    console.error('deleteFromBucket error', err);
+    addToast("error", err?.response?.data?.msg || "Delete failed");
+    return false;
+  } finally {
+    setOperationLoading(false);
+    setOperationMessage("");
+    console.debug('deleteFromBucket: end', id);
+  }
+};
+
+
+  // ========================
   // EFFECTS
   // ========================
-  
+
   // Load user preferences on mount
   useEffect(() => {
     const loadUserPreferences = async () => {
       try {
-        const response = await API.get('/api/auth/me');
+        const response = await API.get("/api/auth/me");
         const settings = response.data.settings || {};
-        
+
         if (settings.fileSortBy) {
           setSortBy(settings.fileSortBy);
         }
@@ -531,31 +710,31 @@ export const DataProvider = ({ children }) => {
         }
         hasLoadedPreferences.current = true;
       } catch (error) {
-        console.error('Failed to load user preferences:', error);
+        console.error("Failed to load user preferences:", error);
         hasLoadedPreferences.current = true;
       }
     };
-    
+
     loadUserPreferences();
   }, []);
 
   // Save sorting preferences when they change
   useEffect(() => {
     if (!hasLoadedPreferences.current) return;
-    
+
     const savePreferences = async () => {
       try {
-        await API.put('/api/auth/settings', {
+        await API.put("/api/auth/settings", {
           settings: {
             fileSortBy: sortBy,
-            fileSortOrder: sortOrder
-          }
+            fileSortOrder: sortOrder,
+          },
         });
       } catch (error) {
-        console.error('Failed to save sorting preferences:', error);
+        console.error("Failed to save sorting preferences:", error);
       }
     };
-    
+
     savePreferences();
   }, [sortBy, sortOrder]);
 
@@ -574,24 +753,29 @@ export const DataProvider = ({ children }) => {
           fetchTasks(date),
           fetchArchives(),
           fetchFolders(),
-          fetchFiles()
+          fetchFiles(),
         ]);
         hasLoadedInitially.current = true;
       } catch (err) {
-        console.error('Failed to load initial data:', err);
+        console.error("Failed to load initial data:", err);
       } finally {
         setGlobalLoading(false);
       }
     };
-    
+
     loadInitialData();
   }, [user]); // Re-run when user changes (login/logout)
+
+  // Debug: log operation loader changes to help trace unexpected overlay triggers
+  useEffect(() => {
+    console.debug('operationLoading changed', { operationLoading, operationMessage });
+  }, [operationLoading, operationMessage]);
 
   // Fetch tasks when date changes
   useEffect(() => {
     // Only fetch if user is authenticated
     if (!user) return;
-    
+
     setTasksLoading(true);
     fetchTasks(date).finally(() => setTasksLoading(false));
   }, [date, user]);
@@ -600,9 +784,9 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     // Skip initial load since it's handled in the main useEffect
     if (!hasLoadedInitially.current) return;
-    
-    const folderKey = currentFolder || 'root';
-    
+
+    const folderKey = currentFolder || "root";
+
     if (folderCache.current[folderKey] && fileCache.current[folderKey]) {
       // Use cached data for instant navigation
       setFolders(folderCache.current[folderKey]);
@@ -611,8 +795,9 @@ export const DataProvider = ({ children }) => {
     } else {
       // Fetch fresh data silently (no loader during navigation)
       setNavigating(true);
-      Promise.all([fetchFolders(), fetchFiles()])
-        .finally(() => setNavigating(false));
+      Promise.all([fetchFolders(), fetchFiles()]).finally(() =>
+        setNavigating(false)
+      );
     }
   }, [currentFolder]);
 
@@ -626,7 +811,7 @@ export const DataProvider = ({ children }) => {
   const value = {
     // Global
     globalLoading,
-    
+
     // Tasks
     tasks,
     date,
@@ -641,18 +826,20 @@ export const DataProvider = ({ children }) => {
     updateTask,
     deleteTask,
     deleteAllTasks,
-    
+    uploadTaskImage,
+    deleteTaskImage,
+
     // Analytics
     archives,
     archivesLoading,
     fetchArchives,
-    
+
     // Profile
     savingProfile,
     savingPassword,
     updateProfile,
     updatePassword,
-    
+
     // Files
     files,
     folders,
@@ -674,12 +861,22 @@ export const DataProvider = ({ children }) => {
     updateFile,
     deleteFile,
     togglePinFile,
+    uploadFileAttachments,
+    deleteFileAttachment,
     createFolder,
     renameFolder,
     deleteFolder,
     togglePinFolder,
     navigateToFolder,
     navigateToPath,
+
+    // Bucket
+    bucketFiles,
+    bucketLoading,
+    fetchBucket,
+    pushToBucket,
+    pullFromBucket,
+    deleteFromBucket,
   };
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

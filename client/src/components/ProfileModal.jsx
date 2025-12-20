@@ -35,7 +35,13 @@ const ProfileModal = ({ open, onClose, user, onUpdated }) => {
           <h6>Profile details</h6>
           <div className="mb-3">
             <label className="form-label">Name</label>
-            <input className="form-control" value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} />
+            <input 
+              className="form-control" 
+              value={profileForm.name} 
+              onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} 
+              maxLength={30}
+            />
+            <small className="text-muted">{profileForm.name.length}/15 characters</small>
           </div>
           <div className="mb-3">
             <label className="form-label">Email</label>

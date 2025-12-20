@@ -9,6 +9,8 @@ const taskRoutes = require('./routes/tasks');
 const archiveRoutes = require('./routes/archive');
 const fileRoutes = require('./routes/files');
 const folderRoutes = require('./routes/folders');
+const bucketRoutes = require('./routes/bucket');
+const storageRoutes = require('./routes/storage');
 const { startAutoArchiveScheduler } = require('./services/autoArchive');
 const mongoose = require('mongoose');
 
@@ -39,7 +41,7 @@ app.use(express.json());
 connectDB();
 
 const url = process.env.BACKEND_URL;
-const interval = 600000; 
+const interval = 600000;
 
 //Pinging server
 function reloadWebsite() {
@@ -59,6 +61,8 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
+app.use('/api/bucket', bucketRoutes);
+app.use('/api/storage', storageRoutes);``
 
 // Simple health route
 app.get('/api/health', (req, res) => res.json({ status: 'ok', now: new Date().toISOString() }));

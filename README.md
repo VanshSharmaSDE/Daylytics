@@ -2,13 +2,161 @@
 
 > A powerful daily task management app with built-in analytics to track your productivity.
 
-**Current Version:** `1.5.7` (Beta)
+**Current Version:** `1.6.7` (Beta)
 
 ---
 
 ## 🚀 Features
 
-### Version 1.5.7 (Current — Beta)
+### 📋 Task Management
+- **Daily Tasks** - Create, edit, toggle, and delete tasks for any date
+- **Task Images** - Attach images to tasks for visual context and reference
+- **Delete All** - Clear all tasks for a specific date with one click
+- **Task Details Modal** - View full task information in a popup
+- **Automatic Archiving** - Tasks automatically archived at midnight (12:00 AM) every day
+- **Character Limits** - Tasks limited to 500 characters and 50 words
+
+### 📝 Files & Notes
+- **Rich Text Editor** - Full markdown toolbar with 14 formatting options (headings, bold, italic, code, lists, links, tables, etc.)
+- **Inline Images** - Upload and embed images directly in file content
+- **Folder Organization** - Create unlimited folders and subfolders for hierarchical file management
+- **Pin Files & Folders** - Pin important items to keep them at the top
+- **File Preview** - View rendered markdown content in a modal
+- **Fullscreen Editor** - Distraction-free editing experience
+- **Smart Caching** - Instant folder navigation with OS-like file explorer experience
+
+### 🗄️ Bucket (Asset Storage) `Added in v1.6.7`
+- **File Upload** - Upload any type of file (images, documents, videos, etc.)
+- **Image Previews** - Automatic thumbnail generation for image files
+- **Download Files** - Secure signed URLs for file downloads
+- **Delete Assets** - Remove files from bucket with storage recalculation
+- **Visual Cards** - Grid layout with image previews and glassmorphism buttons
+- **File Type Icons** - Non-image files display appropriate icons
+
+### 💾 Storage Management
+- **100MB Limit** - Each user gets 100MB of storage for all assets
+- **Unified View** - See all uploaded assets (task images, file inline images, bucket files) in one place
+- **Storage Analytics** - Visual progress bar with color-coded usage (green/yellow/red)
+- **Individual Deletion** - Delete any asset directly from storage page
+- **Real-time Sync** - Storage updates instantly after upload/delete operations
+- **Accurate Tracking** - All uploads tracked with proper file sizes from Cloudinary
+
+### 📊 Analytics
+- **Archive History** - View all past archived tasks with completion statistics
+- **Month/Year Filter** - Select specific months and years (2025-2035) to view archives
+- **Completion Rates** - See percentage of completed vs incomplete tasks
+- **Task Counts** - Total tasks archived for each day
+- **Automatic Archives** - System archives tasks every midnight
+
+### ⚙️ Settings
+- **Profile Management** - Update name and email
+- **Password Change** - Secure password update with current password verification
+- **Storage Overview** - View and manage all uploaded assets
+- **Logout** - Secure logout with confirmation modal
+- **Responsive Design** - Mobile-optimized settings interface
+
+### 🎨 UI/UX
+- **Dark/Light Mode** - GitHub-inspired theme with seamless switching
+- **URL-Based Navigation** - Dashboard tabs use URL routing with browser back/forward support
+- **Mobile Optimized** - Responsive design with slide-out sidebar and icon navigation
+- **Toast Notifications** - Real-time feedback for all user actions
+- **Loading States** - Contextual loaders for operations (creating, updating, deleting)
+- **Glassmorphism** - Modern blur effects on buttons and modals
+
+### 🔐 Security
+- **JWT Authentication** - Secure token-based authentication
+- **Password Hashing** - bcrypt password encryption
+- **CORS Security** - Restricted access to authorized origins only
+- **Protected Routes** - All API endpoints require authentication
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file in the `server` folder with the following variables:
+
+```env
+# Database
+MONGO_URI=your_mongo_connection_string
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key
+
+# Server
+PORT=5000
+BACKEND_URL=http://localhost:5000
+
+# Cloudinary - Used for all file uploads (tasks, files, bucket)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+**Important Notes:**
+- Keep all credentials secret and never commit them to source control
+- Cloudinary is used for:
+  - Task image attachments (folder: `daylytics/tasks`)
+  - File inline images (folder: `daylytics/files/inline`)
+  - Bucket file uploads (folder: `daylytics/bucket`)
+- All uploads count towards the 100MB per-user storage limit
+
+
+### Version 1.6.7 (Current — Beta)
+- **Release Date:** December 20, 2025
+- **🎉 New in This Version:** Bucket (Asset Storage) feature - a complete file storage system for uploading, managing, and downloading any type of file
+- **Major Features & Improvements:**
+   - **🗄️ Bucket (Asset Storage) - NEW FEATURE** - Complete file storage system for all file types
+     - Upload images, documents, PDFs, videos, and more
+     - Image preview cards with automatic thumbnails
+     - Secure file downloads via signed URLs
+     - Integrated with storage management system
+     - Glassmorphism buttons on image previews
+   - **📷 Task Image Attachments - NEW FEATURE** - Attach images to tasks for visual reference
+   - **🖼️ File Inline Images - NEW FEATURE** - Upload and embed images in markdown files
+   - **⚙️ Comprehensive Settings System** - New dedicated settings page with multiple sections
+     - Profile management (name/email updates)
+     - Password change functionality
+     - Storage management with asset overview
+     - Logout confirmation
+   - **💾 Storage Management System** - Complete storage tracking and management
+     - 100MB storage limit per user
+     - Visual storage usage with progress bar (color-coded: green/yellow/red)
+     - Unified asset view showing all uploads (tasks, files, bucket)
+     - Asset details: preview, name, type badge, source, size
+     - Individual asset deletion from storage page
+     - Real-time storage sync after operations
+   - **📁 Inline Image Storage Tracking** - Accurate size tracking for file inline images
+     - Metadata stored for each uploaded inline image
+     - Proper storage calculation including inline images
+     - Cloudinary integration for size retrieval
+   - **🔗 URL-Based Navigation** - Dashboard tabs now use URL routing
+     - `/dashboard/tasks` - Tasks tab
+     - `/dashboard/files` - Files tab
+     - `/dashboard/analytics` - Analytics tab
+     - `/dashboard/bucket` - Bucket tab
+     - `/dashboard/settings` - Settings tab
+     - Tab persistence across page reloads via URL
+     - Browser back/forward button support
+   - **📊 Analytics Enhancements** - Month and year selector for analytics
+     - Dropdown to select any month (January-December)
+     - Dropdown to select year (2025-2035)
+     - Filter archives by selected month/year combination
+   - **🗑️ Mobile Delete All Button** - Delete all tasks button added to mobile view
+     - Appears alongside heading in mobile layout
+     - Consistent with desktop functionality
+   - **🎨 Settings Page Responsive Design** - Mobile-optimized settings layout
+     - Fixed sidebar and content heights (500px on desktop)
+     - Auto-adjusting heights on mobile
+     - Centered loading spinner (no text) for storage
+     - All styles moved to theme.css
+     - Text ellipsis for long file names and sources
+   - **🖼️ Bucket Image Previews** - Image files show preview thumbnails in bucket cards
+     - 200px height cover-fit images with rounded corners
+     - Glassmorphism effect on action buttons over images
+     - Blur backdrop with semi-transparent white background
+     - Non-image files continue showing icon representation
+
+### Version 1.5.7 (Previous — Beta)
 - **Release Date:** December 18, 2025
 - **Patch & UX Improvements:**
    - **📌 Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
@@ -232,6 +380,14 @@
 - **JWT** `9.0.0` - Authentication tokens
 - **bcryptjs** `2.4.3` - Password hashing
 - **CORS** `2.8.5` - Cross-origin resource sharing
+- **Cloudinary** - Cloud-based image and file storage
+
+### Design & Typography
+- **Font Family** - [Geom](https://fonts.google.com/specimen/Geom) (Google Fonts)
+  - Modern, clean sans-serif font
+  - Variable font with weights from 300 to 900
+  - Supports both regular and italic styles
+  - Applied globally across the entire application
 
 ---
 
@@ -242,54 +398,63 @@ Daylytics/
 ├── client/                    # Frontend application
 │   ├── src/
 │   │   ├── components/        # Reusable UI components
-│   │   │   ├── Loader.jsx
-│   │   │   ├── Modal.jsx
-│   │   │   ├── Navbar.jsx
-│   │   │   ├── ProfileModal.jsx
-│   │   │   └── ToastProvider.jsx
+│   │   │   ├── Loader.jsx           # Loading spinner component
+│   │   │   ├── Modal.jsx            # Reusable modal component
+│   │   │   ├── Navbar.jsx           # Top navigation bar
+│   │   │   ├── ProfileModal.jsx     # User profile modal (deprecated)
+│   │   │   └── ToastProvider.jsx    # Toast notification system
 │   │   ├── context/           # React context providers
-│   │   │   ├── AuthContext.jsx
-│   │   │   └── ThemeContext.jsx
+│   │   │   ├── AuthContext.jsx      # Authentication state management
+│   │   │   └── ThemeContext.jsx     # Dark/light theme management
 │   │   ├── pages/             # Page components
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   └── FilesTab.jsx
+│   │   │   ├── Dashboard.jsx        # Main dashboard container
+│   │   │   ├── Login.jsx            # Login page
+│   │   │   ├── Register.jsx         # Registration page
+│   │   │   ├── TasksTab.jsx         # Daily tasks management
+│   │   │   ├── FilesTab.jsx         # Files and folders management
+│   │   │   ├── AnalyticsTab.jsx     # Archive analytics and history
+│   │   │   ├── BucketTab.jsx        # Asset/file bucket storage
+│   │   │   └── Settings.jsx         # Settings page (profile, password, storage)
 │   │   ├── styles/            # Custom CSS
-│   │   │   ├── theme.css
-│   │   │   └── motions.css
+│   │   │   ├── theme.css            # Main theme and component styles
+│   │   │   ├── motions.css          # Animation styles
+│   │   │   └── custom.css           # Additional custom styles
 │   │   ├── api/               # API client
-│   │   │   └── index.js
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   ├── index.html
-│   └── package.json
+│   │   │   └── index.js             # Axios configuration and interceptors
+│   │   ├── assets/            # Static assets (images, icons)
+│   │   ├── App.jsx            # Root component with routing
+│   │   └── main.jsx           # Application entry point
+│   ├── index.html             # HTML template
+│   └── package.json           # Frontend dependencies
 │
 ├── server/                    # Backend application
 │   ├── src/
 │   │   ├── models/            # Mongoose models
-│   │   │   ├── User.js
-│   │   │   ├── Task.js
-│   │   │   ├── DailyArchive.js
-│   │   │   ├── File.js
-│   │   │   └── Folder.js
+│   │   │   ├── User.js              # User model (auth, storage tracking)
+│   │   │   ├── Task.js              # Task model (daily tasks)
+│   │   │   ├── DailyArchive.js      # Archive model (archived tasks)
+│   │   │   ├── File.js              # File model (notes with inline images)
+│   │   │   ├── Folder.js            # Folder model (file organization)
+│   │   │   └── BucketFile.js        # Bucket file model (asset storage)
 │   │   ├── routes/            # API route handlers
-│   │   │   ├── auth.js
-│   │   │   ├── tasks.js
-│   │   │   ├── archive.js
-│   │   │   ├── files.js
-│   │   │   └── folders.js
+│   │   │   ├── auth.js              # Authentication endpoints
+│   │   │   ├── tasks.js             # Task CRUD operations
+│   │   │   ├── archive.js           # Archive operations
+│   │   │   ├── files.js             # File CRUD and inline image uploads
+│   │   │   ├── folders.js           # Folder CRUD operations
+│   │   │   ├── bucket.js            # Bucket file upload/download/delete
+│   │   │   └── storage.js           # Storage management and tracking
 │   │   ├── middleware/        # Custom middleware
-│   │   │   └── auth.js
+│   │   │   └── auth.js              # JWT authentication middleware
+│   │   ├── services/          # Background services
+│   │   │   └── autoArchive.js       # Automatic midnight archiving
 │   │   ├── config/            # Configuration
-│   │   │   └── db.js
+│   │   │   └── db.js                # MongoDB connection
 │   │   └── index.js           # Server entry point
-│   ├── scripts/               # Utility scripts
-│   │   ├── seedTestData.js
-│   │   └── rolloverAll.js
-│   └── package.json
+│   └── package.json           # Backend dependencies
 │
-└── README.md
+├── .gitignore                 # Git ignore rules
+└── README.md                  # Project documentation
 ```
 
 ---
@@ -375,12 +540,16 @@ This creates a test user:
 - `PUT /api/auth/profile` - Update user profile
 - `PUT /api/auth/password` - Change password
 
+### Storage
+- `GET /api/storage` - Get user's storage info and all assets
+- `DELETE /api/storage/:type/:id` - Delete specific asset (task/file/bucket)
+
 ### Tasks
 - `GET /api/tasks?date=YYYY-MM-DD` - Get tasks for date
-- `POST /api/tasks` - Create new task
+- `POST /api/tasks` - Create new task (with optional image attachment)
 - `PUT /api/tasks/:id` - Edit task title
 - `PATCH /api/tasks/:id` - Toggle task completion
-- `DELETE /api/tasks/:id` - Delete task
+- `DELETE /api/tasks/:id` - Delete task (and associated image if exists)
 - `DELETE /api/tasks?date=YYYY-MM-DD` - Delete all tasks for date
 
 ### Archive
@@ -394,12 +563,132 @@ This creates a test user:
 - `PUT /api/files/:id` - Update file (title and/or content)
 - `DELETE /api/files/:id` - Delete file
 - `PATCH /api/files/:id/pin` - Toggle file pin status
+- `POST /api/files/upload-inline` - Upload inline image for markdown
+
+### Folders
+- `GET /api/folders` - Get folders for current user
+- `POST /api/folders` - Create new folder
+- `PUT /api/folders/:id` - Update folder
+- `DELETE /api/folders/:id` - Delete folder
+- `PATCH /api/folders/:id/pin` - Toggle folder pin status
+
+### Bucket
+- `GET /api/bucket` - Get all bucket files for user
+- `POST /api/bucket/push` - Upload file to bucket
+- `GET /api/bucket/pull/:id` - Get signed URL for file download
+- `DELETE /api/bucket/delete/:id` - Delete bucket file
 
 ---
 
 ## 📦 Version History
 
-### v1.5.7 (Current - Beta)
+### v1.6.7 (Current - Beta)
+**Release Date:** December 20, 2025
+
+**🎉 New in This Version:**
+This release introduces the **Bucket (Asset Storage)** feature - a complete file storage system allowing users to upload, download, and manage any type of file with visual previews and integrated storage tracking.
+
+**Major Features & Improvements:**
+- ✅ **Bucket (Asset Storage) - NEW FEATURE** - Complete file storage system for all file types
+  - Upload any type of file (images, documents, PDFs, videos, etc.)
+  - Image preview cards with automatic thumbnail generation
+  - Download files via secure signed URLs
+  - Delete files with automatic storage recalculation
+  - Glassmorphism effect on action buttons over image previews
+  - Grid layout with responsive design
+  - File type icons for non-image files
+  - Integrated with storage management system
+- ✅ **Task Image Attachments - NEW FEATURE** - Attach images to tasks for visual context
+  - Upload images directly when creating or editing tasks
+  - Images stored in Cloudinary (folder: `daylytics/tasks`)
+  - Image previews in task cards
+  - Delete task images with storage recalculation
+  - Counts towards 100MB storage limit
+- ✅ **File Inline Images - NEW FEATURE** - Embed images in file markdown content
+  - Upload images directly in the file editor
+  - Markdown toolbar button for image uploads
+  - Images stored in Cloudinary (folder: `daylytics/files/inline`)
+  - Automatic storage tracking with metadata
+  - Proper size tracking for all inline images
+- ✅ **Comprehensive Settings System** - New dedicated settings page with sidebar navigation
+  - Profile section for updating name and email
+  - Password change section with current/new password fields
+  - Storage management section with visual asset overview
+  - Logout section with confirmation modal
+  - Responsive sidebar (500px fixed height on desktop, auto on mobile)
+- ✅ **Storage Management System** - Complete storage tracking and asset management
+  - 100MB (104,857,600 bytes) storage limit per user
+  - Visual progress bar showing storage usage (green <70%, yellow 70-90%, red >90%)
+  - Unified asset view displaying all uploads from tasks, files, and bucket
+  - Asset details table: thumbnail preview, name, type badge, source, size
+  - Delete individual assets directly from storage page
+  - Real-time storage sync after upload/delete operations
+  - Cloudinary integration for fetching file sizes
+- ✅ **Inline Image Storage Tracking** - Accurate size tracking for markdown inline images
+  - File model stores metadata for each inline image (fileId, url, originalName, size)
+  - Upload endpoint tracks image size and updates user storage
+  - Storage calculation includes inline images with proper sizes
+  - Fallback to Cloudinary API for legacy images without metadata
+- ✅ **URL-Based Navigation** - Dashboard tabs now use URL routing for better UX
+  - `/dashboard/tasks` - Tasks tab
+  - `/dashboard/files` - Files tab  
+  - `/dashboard/analytics` - Analytics tab
+  - `/dashboard/bucket` - Bucket tab
+  - `/dashboard/settings` - Settings tab
+  - Tab state persists across page reloads via URL
+  - Browser back/forward buttons work correctly
+  - Default redirect from `/dashboard` to `/dashboard/tasks`
+- ✅ **Analytics Enhancements** - Month and year selector for filtering archives
+  - Month dropdown (January through December)
+  - Year dropdown (2025 to 2035 - 10 years ahead)
+  - Archives filtered by selected month and year combination
+  - Shows "No archives for this month" when empty
+- ✅ **Mobile Delete All Button** - Delete all tasks button now visible in mobile view
+  - Positioned alongside heading in mobile layout
+  - Same confirmation modal as desktop version
+  - Consistent functionality across all screen sizes
+- ✅ **Settings Page Responsive Design** - Mobile-optimized settings UI
+  - Fixed heights for sidebar (500px) and content (min 500px) on desktop
+  - Heights adjust automatically on mobile devices
+  - Loading spinner centered without text for cleaner look
+  - All inline styles moved to theme.css with proper class names
+  - Text ellipsis for long file names (max 200px) and sources (max 150px)
+  - Smaller asset previews on mobile (40px instead of 50px)
+- ✅ **Bucket Image Previews** - Image files display thumbnail previews in bucket cards
+  - Full-width 200px height images with cover fit and rounded corners
+  - Glassmorphism effect on action buttons over images
+    - Semi-transparent white background (rgba 0.2 opacity)
+    - 10px backdrop blur filter
+    - Subtle white border
+  - Non-image files continue showing file type icons
+  - Action buttons positioned at top-right of preview
+
+**API Updates:**
+- New `GET /api/storage` endpoint - Returns all user assets with sizes and metadata
+- New `DELETE /api/storage/:type/:id` endpoint - Delete assets by type (task/file/bucket)
+- New `POST /api/bucket/push` endpoint - Upload files to bucket storage
+- New `GET /api/bucket/pull/:id` endpoint - Get signed download URL for bucket files
+- New `DELETE /api/bucket/delete/:id` endpoint - Delete bucket files
+- Updated `POST /api/files/upload-inline` - Accepts optional fileId to store metadata
+- Updated `POST /api/tasks` - Accepts image attachments for tasks
+- User model includes `storageUsed`, `storageLimit`, and `pendingInlineImages` fields
+- File model includes `inlineImages` array for tracking inline image metadata
+- BucketFile model for bucket asset management
+- Storage routes query Cloudinary for legacy image sizes
+
+**UI/UX Updates:**
+- Settings icon button in navbar (replaces separate profile/logout buttons)
+- Settings page with glassmorphism modal backdrop
+- Asset table with responsive columns and hover effects
+- Color-coded storage progress bar
+- Mobile-first responsive design for settings page
+- Consistent loading states across all sections
+- **New Typography** - Geom font family from Google Fonts applied globally
+  - Modern, clean variable font with weights 300-900
+  - Replaces previous system fonts for better visual consistency
+  - Supports both regular and italic styles
+
+### v1.5.7 (Previous - Beta)
 **Release Date:** December 18, 2025
 
 **Patch & UX Improvements:**
