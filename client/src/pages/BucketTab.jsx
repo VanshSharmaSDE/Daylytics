@@ -33,6 +33,8 @@ const BucketTab = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [viewFile, setViewFile] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [pdfBlobUrl, setPdfBlobUrl] = useState(null);
+  const [pdfFetchError, setPdfFetchError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const fileRef = useRef(null);
@@ -44,6 +46,26 @@ const BucketTab = () => {
   useEffect(() => {
     fetchFiles();
   }, []);
+
+  // Revoke PDF blob URL when viewer is closed to avoid memory leaks
+  useEffect(() => {
+    if (!viewFile && pdfBlobUrl) {
+      try {
+        URL.revokeObjectURL(pdfBlobUrl);
+      } catch (e) {
+        // ignore
+      }
+      setPdfBlobUrl(null);
+      setPdfFetchError(null);
+    }
+
+    // cleanup on unmount
+    return () => {
+      if (pdfBlobUrl) {
+        try { URL.revokeObjectURL(pdfBlobUrl); } catch (e) {}
+      }
+    };
+  }, [viewFile, pdfBlobUrl]);
 
   const onSelectFile = async (file) => {
     if (!file) return;
@@ -71,11 +93,40 @@ const BucketTab = () => {
   };
 
   const openView = async (file) => {
-    setViewFile({ ...file, url: null });
+    // clear any previous pdf blob/error
+    if (pdfBlobUrl) {
+      URL.revokeObjectURL(pdfBlobUrl);
+      setPdfBlobUrl(null);
+    }
+    setPdfFetchError(null);
+
+    setViewFile({ ...file, url: null, textContent: null });
     setViewLoading(true);
     try {
       const res = await pullFromBucket(file._id);
-      setViewFile({ ...file, url: res.url || res.data?.url });
+      const url = res.url || res.data?.url;
+      if (!url) throw new Error('Unable to resolve file URL');
+
+      // For text files, fetch content for inline preview
+      let textContent = null;
+      const mime = file.mimeType || '';
+      const isText = mime.startsWith('text/') || mime === 'application/json' || (file.fileName && file.fileName.endsWith('.txt'));
+      if (isText) {
+        try {
+          const resp = await fetch(url, { mode: 'cors' });
+          if (resp.ok) {
+            textContent = await resp.text();
+            // Limit content length for safety
+            if (textContent.length > 200000) textContent = textContent.slice(0, 200000) + '\n\n[Truncated]';
+          } else {
+            console.warn('Text file fetch returned non-ok status', resp.status);
+          }
+        } catch (err) {
+          console.warn('Unable to fetch text file content, CORS or network issue', err);
+        }
+      }
+
+      setViewFile({ ...file, url, textContent });
     } catch (err) {
       console.error('Error loading file preview:', err);
       const errorMsg = err?.response?.data?.msg || err?.message || "Unable to load file preview";
@@ -222,7 +273,6 @@ const BucketTab = () => {
                               onPull(f._id, f.fileName);
                             }}
                             title="Download"
-                            disabled={downloadingId === f._id}
                             style={{
                               background: 'rgba(255, 255, 255, 0.2)',
                               backdropFilter: 'blur(10px)',
@@ -230,21 +280,81 @@ const BucketTab = () => {
                               border: '1px solid rgba(255, 255, 255, 0.3)'
                             }}
                           >
-                            {downloadingId === f._id ? (
-                              <span className="spinner-border spinner-border-sm"></span>
-                            ) : (
-                              <i className="ri-download-line"></i>
-                            )}
+                            <i className="ri-download-line"></i>
+                          </button>
+                        </div>
+                      </div>
+                    ) : f.mimeType && f.mimeType.startsWith("video/") ? (
+                      <div className="mb-3 position-relative">
+                        <video
+                          src={f.url}
+                          muted
+                          loop
+                          playsInline
+                          preload="metadata"
+                          style={{
+                            width: '100%',
+                            height: '200px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            background: '#000'
+                          }}
+                        />
+
+                        {/* Center play overlay */}
+                        <div style={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: 'translate(-50%, -50%)',
+                        }}>
+                          <button
+                            className="file-pin-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openView(f);
+                            }}
+                            title="Play video"
+                            style={{
+                              width: 56,
+                              height: 56,
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: 'rgba(255,255,255,0.85)',
+                              border: '0'
+                            }}
+                          >
+                            <i className="ri-play-fill" style={{ fontSize: '1.5rem' }} />
+                          </button>
+                        </div>
+
+                        <div className="position-absolute top-0 end-0 p-2 d-flex gap-1">
+                          <button
+                            className="file-pin-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openView(f);
+                            }}
+                            title="View file"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(255, 255, 255, 0.3)'
+                            }}
+                          >
+                            <i className="ri-eye-line"></i>
                           </button>
 
                           <button
-                            className="file-pin-btn text-danger"
+                            className="file-pin-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setConfirmDelete(f);
+                              onPull(f._id, f.fileName);
                             }}
-                            title="Delete"
-                            disabled={deletingId === f._id}
+                            title="Download"
                             style={{
                               background: 'rgba(255, 255, 255, 0.2)',
                               backdropFilter: 'blur(10px)',
@@ -252,11 +362,7 @@ const BucketTab = () => {
                               border: '1px solid rgba(255, 255, 255, 0.3)'
                             }}
                           >
-                            {deletingId === f._id ? (
-                              <span className="spinner-border spinner-border-sm text-danger"></span>
-                            ) : (
-                              <i className="ri-delete-bin-line"></i>
-                            )}
+                            <i className="ri-download-line"></i>
                           </button>
                         </div>
                       </div>
@@ -391,6 +497,49 @@ const BucketTab = () => {
                   alt={viewFile.fileName}
                   style={{ maxWidth: "100%", maxHeight: "60vh" }}
                 />
+              ) : viewFile.mimeType && viewFile.mimeType.startsWith("video/") ? (
+                <video
+                  src={viewFile.url}
+                  controls
+                  autoPlay
+                  style={{ maxWidth: "100%", maxHeight: "60vh" }}
+                />
+              ) : (viewFile.mimeType === 'application/pdf' || (viewFile.fileName && viewFile.fileName.toLowerCase().endsWith('.pdf'))) ? (
+                // Native PDF preview using <object> with <embed> fallback (no proxy/API used)
+                <div>
+                  <object
+                    data={pdfBlobUrl || viewFile.url}
+                    type="application/pdf"
+                    width="100%"
+                    height="70vh"
+                  >
+                    {/* Fallback content when embedding is not supported or blocked */}
+                    <div className="text-center p-4">
+                      <p className="mb-2">Unable to display PDF inline in this browser.</p>
+                      <p className="small text-muted">This can be due to browser settings or CORS restrictions on the file host.</p>
+                      <div className="mt-3">
+                        <button className="btn btn-primary me-2" onClick={() => onPull(viewFile._id, viewFile.fileName)}>Download PDF</button>
+                        <a className="btn btn-outline-secondary" href={pdfBlobUrl || viewFile.url} target="_blank" rel="noreferrer">Open in new tab</a>
+                      </div>
+                    </div>
+                  </object>
+                </div>
+              ) : (viewFile.mimeType === 'application/msword' || viewFile.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || (viewFile.fileName && (viewFile.fileName.toLowerCase().endsWith('.doc') || viewFile.fileName.toLowerCase().endsWith('.docx')))) ? (
+                // Word preview via Microsoft Office viewer
+                <iframe
+                  src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(viewFile.url)}`}
+                  title={viewFile.fileName}
+                  style={{ width: '100%', height: '70vh', border: 'none' }}
+                />
+              ) : (viewFile.mimeType && viewFile.mimeType.startsWith('text')) || viewFile.textContent ? (
+                // Plain text preview (fetched content)
+                <div style={{ maxHeight: '70vh', overflow: 'auto', background: 'var(--panel-muted)', padding: 12, borderRadius: 6 }}>
+                  {viewFile.textContent ? (
+                    <pre style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{viewFile.textContent}</pre>
+                  ) : (
+                    <p className="text-muted">Unable to fetch text content for preview (possible CORS restriction).</p>
+                  )}
+                </div>
               ) : (
                 <div>
                   <p className="text-muted">
