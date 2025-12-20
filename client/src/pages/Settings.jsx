@@ -91,6 +91,18 @@ const Settings = () => {
     navigate('/login');
   };
 
+  const fileIconFor = (mime) => {
+    if (!mime) return 'ri-file-line';
+    if (mime.startsWith('image/')) return 'ri-image-line';
+    if (mime.startsWith('video/')) return 'ri-file-video-line';
+    if (mime === 'application/pdf') return 'ri-file-pdf-line';
+    if (mime.startsWith('text/')) return 'ri-file-text-line';
+    if (mime === 'application/msword' || mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'ri-file-word-line';
+    if (mime === 'application/vnd.ms-excel' || mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'ri-file-excel-line';
+    if (mime.startsWith('audio/')) return 'ri-file-music-line';
+    return 'ri-file-line';
+  };
+
   const formatBytes = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;

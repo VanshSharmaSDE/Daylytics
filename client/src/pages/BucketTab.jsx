@@ -361,8 +361,35 @@ const BucketTab = () => {
                               WebkitBackdropFilter: 'blur(10px)',
                               border: '1px solid rgba(255, 255, 255, 0.3)'
                             }}
+                            disabled={downloadingId === f._id}
                           >
-                            <i className="ri-download-line"></i>
+                            {downloadingId === f._id ? (
+                              <span className="spinner-border spinner-border-sm"></span>
+                            ) : (
+                              <i className="ri-download-line"></i>
+                            )}
+                          </button>
+
+                          <button
+                            className="file-pin-btn text-danger"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDelete(f);
+                            }}
+                            title="Delete"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(255, 255, 255, 0.3)'
+                            }}
+                            disabled={deletingId === f._id}
+                          >
+                            {deletingId === f._id ? (
+                              <span className="spinner-border spinner-border-sm text-danger"></span>
+                            ) : (
+                              <i className="ri-delete-bin-line"></i>
+                            )}
                           </button>
                         </div>
                       </div>

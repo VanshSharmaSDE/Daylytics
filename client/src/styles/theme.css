@@ -1057,11 +1057,21 @@ small {
   padding: 0.15rem 0.4rem;
   border-radius: 6px;
   transition: background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
 }
 
 .file-pin-btn:hover {
   background: rgba(255, 193, 7, 0.08);
   color: #ffc107;
+}
+
+.file-pin-btn.text-danger {
+  color: var(--danger);
+}
+
+.file-pin-btn.text-danger:hover {
+  background: rgba(207, 34, 46, 0.1);
+  color: var(--danger);
 }
 
 .file-pin-btn i.ri-pushpin-fill {
@@ -1332,6 +1342,12 @@ small {
   height: 50px;
   object-fit: cover;
   border-radius: 4px;
+}
+
+.settings-file-icon {
+  font-size: 2rem;
+  color: var(--primary);
+  opacity: 0.8;
 }
 
 .settings-text-ellipsis {
