@@ -2,7 +2,7 @@
 
 > A powerful daily task management app with built-in analytics to track your productivity.
 
-**Current Version:** `1.6.7` (Beta)
+**Current Version:** `1.6.7` (Stable)
 
 ---
 
@@ -101,7 +101,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 - All uploads count towards the 100MB per-user storage limit
 
 
-### Version 1.6.7 (Current — Beta)
+### Version 1.6.7 (Current — Stable)
 - **Release Date:** December 20, 2025
 - **🎉 New in This Version:** Bucket (Asset Storage) feature - a complete file storage system for uploading, managing, and downloading any type of file
 - **Major Features & Improvements:**

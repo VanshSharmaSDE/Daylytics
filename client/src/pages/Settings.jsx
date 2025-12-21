@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext';
 import API from '../api';
 import { useToast } from '../components/ToastProvider';
 import Loader from '../components/Loader';
+import Modal from '../components/Modal';
 
 const Settings = () => {
   const { user, refreshUser, logout } = useAuth();
@@ -21,6 +22,7 @@ const Settings = () => {
   const [storageData, setStorageData] = useState(null);
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState(null);
+  const [assetToDelete, setAssetToDelete] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -65,24 +67,25 @@ const Settings = () => {
     }
   };
 
-  const handleDeleteAsset = async (asset) => {
-    if (!confirm(`Delete ${asset.name}?`)) return;
+  const confirmDeleteAsset = async () => {
+    if (!assetToDelete) return;
 
-    setDeletingAsset(asset.id);
+    setDeletingAsset(assetToDelete.id);
     try {
       const params = new URLSearchParams();
-      if (asset.type === 'file') {
-        params.append('fileId', asset.fileId);
-        params.append('imageUrl', asset.url);
+      if (assetToDelete.type === 'file') {
+        params.append('fileId', assetToDelete.fileId);
+        params.append('imageUrl', assetToDelete.url);
       }
       
-      await API.delete(`/api/storage/${asset.type}/${asset.id}?${params.toString()}`);
+      await API.delete(`/api/storage/${assetToDelete.type}/${assetToDelete.id}?${params.toString()}`);
       addToast('success', 'Asset deleted successfully');
       fetchStorageData();
     } catch (err) {
       addToast('error', err.response?.data?.msg || 'Failed to delete asset');
     } finally {
       setDeletingAsset(null);
+      setAssetToDelete(null);
     }
   };
 
@@ -339,7 +342,7 @@ const Settings = () => {
                                         </a>
                                         <button
                                           className="btn btn-outline-danger"
-                                          onClick={() => handleDeleteAsset(asset)}
+                                          onClick={() => setAssetToDelete(asset)}
                                           disabled={deletingAsset === asset.id}
                                         >
                                           {deletingAsset === asset.id ? (
@@ -375,40 +378,57 @@ const Settings = () => {
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="modal show d-block settings-modal-backdrop">
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Ready to sign out?</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setShowLogoutModal(false)}
-                ></button>
-              </div>
-              <div className="modal-body">
-                <p className="mb-0">You'll be redirected to the login screen.</p>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  className="btn btn-outline-secondary" 
-                  onClick={() => setShowLogoutModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn btn-outline-danger" 
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
+      {/* Delete Asset Confirmation Modal */}
+      <Modal
+        open={!!assetToDelete}
+        title="Delete Asset?"
+        onClose={() => setAssetToDelete(null)}
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button 
+              className="btn btn-outline-secondary" 
+              onClick={() => setAssetToDelete(null)}
+              disabled={deletingAsset === assetToDelete?.id}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-outline-danger" 
+              onClick={confirmDeleteAsset}
+              disabled={deletingAsset === assetToDelete?.id}
+            >
+              {deletingAsset === assetToDelete?.id ? 'Deleting...' : 'Delete'}
+            </button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <p className="mb-0">Are you sure you want to delete <strong>{assetToDelete?.name}</strong>? This action cannot be undone.</p>
+      </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        open={showLogoutModal}
+        title="Ready to sign out?"
+        onClose={() => setShowLogoutModal(false)}
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button 
+              className="btn btn-outline-secondary" 
+              onClick={() => setShowLogoutModal(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              className="btn btn-outline-danger" 
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
+        }
+      >
+        <p className="mb-0">You'll be redirected to the login screen.</p>
+      </Modal>
     </div>
   );
 };
