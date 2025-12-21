@@ -237,7 +237,7 @@ const BucketTab = () => {
                     style={{ cursor: "pointer" }}
                   >
                     {f.mimeType && f.mimeType.startsWith("image/") ? (
-                      <div className="mb-3 position-relative">
+                      <div className="mb-3 position-relative" style={{ overflow: 'visible' }}>
                         <img 
                           src={f.url} 
                           alt={f.fileName}
@@ -248,7 +248,7 @@ const BucketTab = () => {
                             borderRadius: '8px' 
                           }}
                         />
-                        <div className="position-absolute top-0 end-0 p-2 d-flex gap-1">
+                        <div className="position-absolute top-0 end-0 p-2 d-flex gap-1" style={{ flexWrap: 'nowrap' }}>
                           <button
                             className="file-pin-btn"
                             onClick={(e) => {
@@ -279,8 +279,36 @@ const BucketTab = () => {
                               WebkitBackdropFilter: 'blur(10px)',
                               border: '1px solid rgba(255, 255, 255, 0.3)'
                             }}
+                            disabled={downloadingId === f._id}
                           >
-                            <i className="ri-download-line"></i>
+                            {downloadingId === f._id ? (
+                              <span className="spinner-border spinner-border-sm"></span>
+                            ) : (
+                              <i className="ri-download-line"></i>
+                            )}
+                          </button>
+
+                          <button
+                            className="file-pin-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirmDelete(f);
+                            }}
+                            title="Delete"
+                            style={{
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
+                              border: '1px solid rgba(255, 255, 255, 0.3)',
+                              color: '#dc3545'
+                            }}
+                            disabled={deletingId === f._id}
+                          >
+                            {deletingId === f._id ? (
+                              <span className="spinner-border spinner-border-sm text-danger"></span>
+                            ) : (
+                              <i className="ri-delete-bin-line"></i>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -330,7 +358,7 @@ const BucketTab = () => {
                           </button>
                         </div>
 
-                        <div className="position-absolute top-0 end-0 p-2 d-flex gap-1">
+                        <div className="position-absolute top-0 end-0 p-2 d-flex gap-1" style={{ zIndex: 10 }}>
                           <button
                             className="file-pin-btn"
                             onClick={(e) => {
@@ -378,15 +406,16 @@ const BucketTab = () => {
                             }}
                             title="Delete"
                             style={{
-                              background: 'rgba(255, 255, 255, 0.2)',
+                              background: '#dc3545',
                               backdropFilter: 'blur(10px)',
                               WebkitBackdropFilter: 'blur(10px)',
-                              border: '1px solid rgba(255, 255, 255, 0.3)'
+                              // border: '1px solid #dc3545',
+                              // color: 'white'
                             }}
                             disabled={deletingId === f._id}
                           >
                             {deletingId === f._id ? (
-                              <span className="spinner-border spinner-border-sm text-danger"></span>
+                              <span className="spinner-border spinner-border-sm"></span>
                             ) : (
                               <i className="ri-delete-bin-line"></i>
                             )}

@@ -311,7 +311,7 @@ const Settings = () => {
                                       </div>
                                     </td>
                                     <td>
-                                      <span className="badge bg-secondary">
+                                      <span className="badge">
                                         {asset.type === 'task' ? 'Task' : asset.type === 'file' ? 'File' : 'Bucket'}
                                       </span>
                                     </td>

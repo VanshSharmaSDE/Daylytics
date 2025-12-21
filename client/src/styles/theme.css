@@ -109,6 +109,43 @@ body::-webkit-scrollbar {
   border-color: var(--success-soft-border);
 }
 
+.table {
+  color: var(--text) !important;
+  border-color: var(--border);
+  background-color: var(--panel);
+}
+
+.table thead th {
+  border-bottom-color: var(--border);
+  color: var(--headline) !important;
+  background-color: var(--panel);
+}
+
+.table tbody td {
+  border-color: var(--border);
+  background-color: var(--panel);
+  color: var(--text) !important;
+}
+
+.table tbody tr {
+  background-color: var(--panel);
+  color: var(--text) !important;
+}
+
+.table-hover tbody tr:hover {
+  background-color: var(--panel-muted);
+  color: var(--text) !important;
+}
+
+.table tbody td div,
+.table tbody td span {
+  color: var(--text) !important;
+}
+
+.badge {
+  color: #fff !important;
+}
+
 .form-control {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1065,6 +1102,10 @@ small {
   color: #ffc107;
 }
 
+.file-pin-btn:hover .ri-delete-bin-line {
+  color: #dc3545 !important;
+}
+
 .file-pin-btn.text-danger {
   color: var(--danger);
 }
@@ -1161,6 +1202,7 @@ small {
 
 .markdown-preview code {
   background-color: var(--panel-muted);
+  color: var(--text);
   padding: 0.2em 0.4em;
   border-radius: 3px;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
@@ -1169,6 +1211,7 @@ small {
 
 .markdown-preview pre {
   background-color: var(--panel-muted);
+  color: var(--text);
   padding: 1em;
   border-radius: 6px;
   border: 1px solid var(--border);
@@ -1178,6 +1221,7 @@ small {
 
 .markdown-preview pre code {
   background-color: transparent;
+  color: inherit;
   padding: 0;
   border-radius: 0;
 }

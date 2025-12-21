@@ -43,24 +43,27 @@
 }
 
 .markdown-preview pre {
-    background-color: #f6f8fa;
+    background-color: var(--panel-muted);
+    color: var(--text);
     border-radius: 6px;
     padding: 16px;
     overflow-x: auto;
+    border: 1px solid var(--border);
 }
 
 .markdown-preview code {
-    background-color: #f6f8fa;
+    background-color: var(--panel-muted);
+    color: var(--text);
     padding: 2px 6px;
     border-radius: 3px;
     font-family: 'Courier New', monospace;
 }
 
 .markdown-preview blockquote {
-    border-left: 4px solid #ddd;
+    border-left: 4px solid var(--border);
     padding-left: 16px;
     margin-left: 0;
-    color: #666;
+    color: var(--text-muted);
 }
 
 .markdown-preview table {
@@ -71,12 +74,12 @@
 
 .markdown-preview table th,
 .markdown-preview table td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     padding: 8px 12px;
     text-align: left;
 }
 
 .markdown-preview table th {
-    background-color: #f6f8fa;
+    background-color: var(--panel-muted);
     font-weight: 600;
 }
