@@ -1,77 +1,231 @@
 # Daylytics
 
-> A powerful daily task management app with built-in analytics to track your productivity.
+A comprehensive productivity platform combining daily task management, document organization, asset storage, and analytics to streamline your workflow.
 
-**Current Version:** `1.6.7` (Stable)
+**Current Version:** 1.6.8 (Stable)
 
----
-
-## 🚀 Features
-
-### 📋 Task Management
-- **Daily Tasks** - Create, edit, toggle, and delete tasks for any date
-- **Task Images** - Attach images to tasks for visual context and reference
-- **Delete All** - Clear all tasks for a specific date with one click
-- **Task Details Modal** - View full task information in a popup
-- **Automatic Archiving** - Tasks automatically archived at midnight (12:00 AM) every day
-- **Character Limits** - Tasks limited to 500 characters and 50 words
-
-### 📝 Files & Notes
-- **Rich Text Editor** - Full markdown toolbar with 14 formatting options (headings, bold, italic, code, lists, links, tables, etc.)
-- **Inline Images** - Upload and embed images directly in file content
-- **Folder Organization** - Create unlimited folders and subfolders for hierarchical file management
-- **Pin Files & Folders** - Pin important items to keep them at the top
-- **File Preview** - View rendered markdown content in a modal
-- **Fullscreen Editor** - Distraction-free editing experience
-- **Smart Caching** - Instant folder navigation with OS-like file explorer experience
-
-### 🗄️ Bucket (Asset Storage) `Added in v1.6.7`
-- **File Upload** - Upload any type of file (images, documents, videos, etc.)
-- **Image Previews** - Automatic thumbnail generation for image files
-- **Download Files** - Secure signed URLs for file downloads
-- **Delete Assets** - Remove files from bucket with storage recalculation
-- **Visual Cards** - Grid layout with image previews and glassmorphism buttons
-- **File Type Icons** - Non-image files display appropriate icons
-
-### 💾 Storage Management
-- **100MB Limit** - Each user gets 100MB of storage for all assets
-- **Unified View** - See all uploaded assets (task images, file inline images, bucket files) in one place
-- **Storage Analytics** - Visual progress bar with color-coded usage (green/yellow/red)
-- **Individual Deletion** - Delete any asset directly from storage page
-- **Real-time Sync** - Storage updates instantly after upload/delete operations
-- **Accurate Tracking** - All uploads tracked with proper file sizes from Cloudinary
-
-### 📊 Analytics
-- **Archive History** - View all past archived tasks with completion statistics
-- **Month/Year Filter** - Select specific months and years (2025-2035) to view archives
-- **Completion Rates** - See percentage of completed vs incomplete tasks
-- **Task Counts** - Total tasks archived for each day
-- **Automatic Archives** - System archives tasks every midnight
-
-### ⚙️ Settings
-- **Profile Management** - Update name and email
-- **Password Change** - Secure password update with current password verification
-- **Storage Overview** - View and manage all uploaded assets
-- **Logout** - Secure logout with confirmation modal
-- **Responsive Design** - Mobile-optimized settings interface
-
-### 🎨 UI/UX
-- **Dark/Light Mode** - GitHub-inspired theme with seamless switching
-- **URL-Based Navigation** - Dashboard tabs use URL routing with browser back/forward support
-- **Mobile Optimized** - Responsive design with slide-out sidebar and icon navigation
-- **Toast Notifications** - Real-time feedback for all user actions
-- **Loading States** - Contextual loaders for operations (creating, updating, deleting)
-- **Glassmorphism** - Modern blur effects on buttons and modals
-
-### 🔐 Security
-- **JWT Authentication** - Secure token-based authentication
-- **Password Hashing** - bcrypt password encryption
-- **CORS Security** - Restricted access to authorized origins only
-- **Protected Routes** - All API endpoints require authentication
+**Last Updated:** December 22, 2025
 
 ---
 
-## ⚙️ Environment Variables
+## Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [API Documentation](#api-documentation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Version History](#version-history)
+- [License](#license)
+
+---
+
+## Overview
+
+Daylytics is a full-stack web application designed to enhance personal and professional productivity. Built with modern technologies, it offers an intuitive interface for managing daily tasks, organizing documents in a hierarchical structure, storing various file types, and tracking productivity through comprehensive analytics.
+
+The platform features automatic task archiving, rich markdown editing, cloud-based asset storage with a 100MB limit per user, and seamless dark/light theme switching—all optimized for both desktop and mobile devices.
+
+---
+
+## Key Features
+
+---
+
+## Key Features
+
+### Task Management
+
+**Daily Task Organization**
+- Create, edit, toggle completion status, and delete tasks for any specific date
+- Attach images to tasks for visual context and detailed reference
+- Inline task editing with intuitive save/cancel controls
+- Task details modal for viewing complete information
+- Bulk delete all tasks for a specific date with confirmation
+- Character limits enforced (500 characters, 50 words per task)
+- Completion tracking with checkbox-only toggle behavior
+
+**Automatic Archiving**
+- System automatically archives all tasks at midnight (12:00 AM) every day
+- Tasks remain on their original creation date permanently
+- Each day starts fresh with zero tasks
+- No manual intervention required
+- Preserved task history for analytics
+
+### Document Management
+
+**Rich Text Editing**
+- Comprehensive markdown toolbar with 14 formatting options
+- Support for headings (H1, H2, H3), bold, italic, and inline code
+- Code blocks with syntax preservation
+- Bullet lists, numbered lists, and horizontal rules
+- Links, blockquotes, and tables
+- Fullscreen distraction-free editing mode
+- Live markdown preview rendering
+
+**File Organization**
+- Unlimited folders with nested subfolder support
+- Hierarchical parent-child folder relationships
+- Breadcrumb navigation for easy folder traversal
+- Pin files and folders for quick access
+- Files automatically sort by pinned status and update time
+- Smart caching for instant folder navigation
+
+**Inline Image Support**
+- Upload and embed images directly in markdown content
+- Automatic metadata tracking (file ID, URL, original name, size)
+- Storage quota integration
+- Cloudinary-powered image hosting
+
+### Asset Storage (Bucket)
+
+**File Upload & Management**
+- Upload any file type (images, documents, PDFs, videos, audio, etc.)
+- Maximum file size: 10MB per file
+- Total storage limit: 100MB per user
+- Secure file downloads via Cloudinary signed URLs
+- Delete files with automatic storage recalculation
+- Grid layout with responsive design
+
+**Visual Previews**
+- Automatic thumbnail generation for image files
+- Video preview with inline playback controls
+- PDF viewer with native browser rendering
+- Word document preview via Office Online viewer
+- Text file content display with syntax highlighting
+- File type icons for all supported formats
+
+**Glassmorphism UI**
+- Semi-transparent button overlays on image previews
+- Backdrop blur effects (10px)
+- Hover states with color transitions
+- Modern, clean aesthetic throughout
+
+### Storage Management
+
+**Quota System**
+- 100MB (104,857,600 bytes) storage limit per user
+- Real-time storage usage tracking
+- Visual progress bar with color-coded indicators:
+  - Green (under 70% usage)
+  - Yellow (70-90% usage)
+  - Red (over 90% usage)
+- Storage warnings when approaching limit
+
+**Unified Asset View**
+- Comprehensive table displaying all uploaded assets
+- Asset sources: Task images, File inline images, Bucket files
+- Information displayed: Preview thumbnail, name, type badge, source, size
+- Individual asset deletion from storage overview
+- Responsive table design for mobile devices
+- Dark mode support with proper text contrast
+
+### Analytics & Reporting
+
+**Archive Management**
+- View all past archived tasks with completion statistics
+- Month and year filter selector (2025-2035)
+- Completion rate percentage calculation
+- Task counts per archived day
+- Automatic midnight archiving system
+- Archive history preservation
+
+### Settings & Preferences
+
+**User Profile**
+- Update display name and email address
+- Secure password change with current password verification
+- Input validation on all profile fields
+
+**Storage Overview**
+- Visual representation of storage usage
+- Detailed asset listing with deletion capability
+- File type icons and thumbnails
+- Size formatting (Bytes, KB, MB, GB)
+
+**Theme Customization**
+- GitHub-inspired light and dark themes
+- Seamless theme switching
+- Persistent theme preference across sessions
+- Geom font family (Google Fonts) applied globally
+
+### User Interface
+
+**Navigation**
+- URL-based tab routing with browser history support
+- Dashboard tabs: Tasks, Files, Analytics, Bucket, Settings
+- Mobile-optimized sidebar with hamburger menu
+- Persistent active tab state via URL parameters
+
+**Responsive Design**
+- Mobile-first approach with breakpoint-based layouts
+- Touch-optimized controls for mobile devices
+- Adaptive sidebar and content areas
+- Icon-based navigation for small screens
+
+**Feedback Systems**
+- Toast notifications for all user actions
+- Contextual loading states with operation messages
+- Confirmation modals for destructive actions
+- Reusable Modal component with consistent design
+
+### Security
+
+**Authentication**
+- JWT (JSON Web Token) based authentication
+- Secure password hashing with bcrypt
+- Protected API routes requiring authentication
+- Session persistence with token refresh
+
+**Data Protection**
+- CORS configuration restricting unauthorized origins
+- Environment variable management for sensitive data
+- Cloudinary secure signed URLs for file access
+- User-specific data isolation
+
+---
+
+## Technology Stack
+
+### Frontend
+
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| React | 18.2.0 | Component-based UI library |
+| Vite | 5.0.0 | Build tool and development server |
+| React Router | 6.14.0 | Client-side routing and navigation |
+| Bootstrap | 5.3.0 | CSS framework with custom theming |
+| Remix Icon | 4.7.0 | Comprehensive icon library |
+| Axios | 1.4.0 | HTTP client for API requests |
+| marked | 11.1.1 | Markdown parser and renderer |
+
+### Backend
+
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Node.js | LTS | JavaScript runtime environment |
+| Express | 4.18.2 | Web application framework |
+| MongoDB | Latest | NoSQL database for data persistence |
+| Mongoose | 7.0.0 | MongoDB object modeling (ODM) |
+| JSON Web Token | 9.0.0 | Authentication token generation |
+| bcryptjs | 2.4.3 | Password hashing algorithm |
+| CORS | 2.8.5 | Cross-origin resource sharing middleware |
+| Cloudinary | SDK | Cloud-based asset storage service |
+
+### Design & Typography
+
+**Font Family:** Geom (Google Fonts)
+- Modern variable font with weights from 300 to 900
+- Supports regular and italic styles
+- Applied globally for consistent typography
+- Clean, readable sans-serif design
+
+---
+
+## Project Structure
 
 Create a `.env` file in the `server` folder with the following variables:
 
@@ -103,33 +257,33 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ### Version 1.6.7 (Current — Stable)
 - **Release Date:** December 20, 2025
-- **🎉 New in This Version:** Bucket (Asset Storage) feature - a complete file storage system for uploading, managing, and downloading any type of file
+- **New in This Version:** Bucket (Asset Storage) feature - a complete file storage system for uploading, managing, and downloading any type of file
 - **Major Features & Improvements:**
-   - **🗄️ Bucket (Asset Storage) - NEW FEATURE** - Complete file storage system for all file types
+   - **Bucket (Asset Storage) - NEW FEATURE** - Complete file storage system for all file types
      - Upload images, documents, PDFs, videos, and more
      - Image preview cards with automatic thumbnails
      - Secure file downloads via signed URLs
      - Integrated with storage management system
      - Glassmorphism buttons on image previews
-   - **📷 Task Image Attachments - NEW FEATURE** - Attach images to tasks for visual reference
-   - **🖼️ File Inline Images - NEW FEATURE** - Upload and embed images in markdown files
-   - **⚙️ Comprehensive Settings System** - New dedicated settings page with multiple sections
+   - **Task Image Attachments - NEW FEATURE** - Attach images to tasks for visual reference
+   - **File Inline Images - NEW FEATURE** - Upload and embed images in markdown files
+   - **Comprehensive Settings System** - New dedicated settings page with multiple sections
      - Profile management (name/email updates)
      - Password change functionality
      - Storage management with asset overview
      - Logout confirmation
-   - **💾 Storage Management System** - Complete storage tracking and management
+   - **Storage Management System** - Complete storage tracking and management
      - 100MB storage limit per user
      - Visual storage usage with progress bar (color-coded: green/yellow/red)
      - Unified asset view showing all uploads (tasks, files, bucket)
      - Asset details: preview, name, type badge, source, size
      - Individual asset deletion from storage page
      - Real-time storage sync after operations
-   - **📁 Inline Image Storage Tracking** - Accurate size tracking for file inline images
+   - **Inline Image Storage Tracking** - Accurate size tracking for file inline images
      - Metadata stored for each uploaded inline image
      - Proper storage calculation including inline images
      - Cloudinary integration for size retrieval
-   - **🔗 URL-Based Navigation** - Dashboard tabs now use URL routing
+   - **URL-Based Navigation** - Dashboard tabs now use URL routing
      - `/dashboard/tasks` - Tasks tab
      - `/dashboard/files` - Files tab
      - `/dashboard/analytics` - Analytics tab
@@ -137,20 +291,20 @@ CLOUDINARY_API_SECRET=your_api_secret
      - `/dashboard/settings` - Settings tab
      - Tab persistence across page reloads via URL
      - Browser back/forward button support
-   - **📊 Analytics Enhancements** - Month and year selector for analytics
+   - **Analytics Enhancements** - Month and year selector for analytics
      - Dropdown to select any month (January-December)
      - Dropdown to select year (2025-2035)
      - Filter archives by selected month/year combination
-   - **🗑️ Mobile Delete All Button** - Delete all tasks button added to mobile view
+   - **Mobile Delete All Button** - Delete all tasks button added to mobile view
      - Appears alongside heading in mobile layout
      - Consistent with desktop functionality
-   - **🎨 Settings Page Responsive Design** - Mobile-optimized settings layout
+   - **Settings Page Responsive Design** - Mobile-optimized settings layout
      - Fixed sidebar and content heights (500px on desktop)
      - Auto-adjusting heights on mobile
      - Centered loading spinner (no text) for storage
      - All styles moved to theme.css
      - Text ellipsis for long file names and sources
-   - **🖼️ Bucket Image Previews** - Image files show preview thumbnails in bucket cards
+   - **Bucket Image Previews** - Image files show preview thumbnails in bucket cards
      - 200px height cover-fit images with rounded corners
      - Glassmorphism effect on action buttons over images
      - Blur backdrop with semi-transparent white background
@@ -159,50 +313,50 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.5.7 (Previous — Beta)
 - **Release Date:** December 18, 2025
 - **Patch & UX Improvements:**
-   - **📌 Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
-   - **📱 Mobile Button Fix** - Fixed button display on mobile screens: modal action buttons now show icons on small screens with text hidden for a compact layout.
-   - **🧩 UI Fixes** - Split files into pinned/unpinned lists and fixed a small key bug in the files listing.
-   - **🔧 Backend Fix (Folders)** - `PUT /api/folders/:id` now persists `isPinned`; folder pin/unpin operations are saved correctly.
-   - **📝 Misc** - Updated UI version strings to `v1.5.7`.
+   - **Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
+   - **Mobile Button Fix** - Fixed button display on mobile screens: modal action buttons now show icons on small screens with text hidden for a compact layout.
+   - **UI Fixes** - Split files into pinned/unpinned lists and fixed a small key bug in the files listing.
+   - **Backend Fix (Folders)** - `PUT /api/folders/:id` now persists `isPinned`; folder pin/unpin operations are saved correctly.
+   - **Misc** - Updated UI version strings to `v1.5.7`.
 
 ### Version 1.5.6 (Previous — Beta)
 - **Release Date:** December 16, 2025
 - **Major Refactoring & Performance:**
-   - **🎯 Centralized Data Management** - Created DataContext for all data operations
+   - **Centralized Data Management** - Created DataContext for all data operations
      - Moved all database logic from individual tabs to single DataContext
      - Tasks, Analytics, Files, and Profile operations unified
      - Single source of truth for entire application
-   - **📂 Modular Architecture** - Each tab separated into dedicated components
+   - **Modular Architecture** - Each tab separated into dedicated components
      - TasksTab.jsx, FilesTab.jsx, AnalyticsTab.jsx as independent components
      - Better code organization and maintainability
      - Easier to debug and extend individual features
-   - **⚡ Single Global Loader** - Replaced individual tab loaders with unified loading system
+   - **Single Global Loader** - Replaced individual tab loaders with unified loading system
      - Global loader for initial app load
      - Operation loader for CRUD operations (create, update, delete)
      - Navigation loader for folder navigation
      - Consistent Loader component used throughout
-   - **🔄 Smart Navigation** - Instant folder navigation with intelligent caching
+   - **Smart Navigation** - Instant folder navigation with intelligent caching
      - No loader during cached folder navigation
      - Only shows loader when fetching uncached folders
      - Prevents "no files" flash during navigation
-   - **♿ Enhanced UX & Accessibility** - Improved user experience throughout
+   - **Enhanced UX & Accessibility** - Improved user experience throughout
      - Consistent loading states prevent confusion
      - Clear feedback for all operations (creating, updating, deleting)
      - Smooth transitions without jarring empty states
      - Predictable behavior across all tabs
-   - **🧹 Clean Tab Components** - All tabs are now purely presentational
+   - **Clean Tab Components** - All tabs are now purely presentational
      - No data fetching logic in TasksTab, FilesTab, or AnalyticsTab
      - Only UI helper functions (formatting, display logic)
      - Consistent empty state handling across all tabs
-   - **🚫 Removed Refresh Buttons** - Data refreshes automatically after operations
+   - **Removed Refresh Buttons** - Data refreshes automatically after operations
      - Tasks refresh after create/update/delete
      - Files refresh after file/folder operations
      - Analytics refresh after archiving
-   - **🎨 Improved Loader Styling** - Clean, solid background loader
+   - **Improved Loader Styling** - Clean, solid background loader
      - Removed blur effect for better visibility
      - Solid white/theme background
      - Consistent full-screen display
-   - **🐛 Modal Layout Fix** - Fixed file/folder modals positioning
+   - **Modal Layout Fix** - Fixed file/folder modals positioning
      - Modals now render outside tab containers
      - Proper z-index and positioning
      - No wrapper interference
@@ -210,10 +364,10 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.4.6 (Beta)
 - **Release Date:** December 2025
 - Additional Improvements:
-      - **🔖 Favicon Implementation** - Daylytics logo favicon added to enhance branding
+      - **Favicon Implementation** - Daylytics logo favicon added to enhance branding
       - Displays in browser tab for easy identification
       - Improves overall user experience
-    - **🔧 Added Sorting Feature** - Users can now sort files by title, date, and size
+    - **Added Sorting Feature** - Users can now sort files by title, date, and size
       - Sorting preferences are saved and loaded automatically
       - Fixes formatting bugs related to file display
       - Removed root files display for cleaner interface
@@ -221,19 +375,19 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.4.5 (Beta)
 - **Release Date:** December 2025
 - **Files System Improvements & Performance:**
-   - **🐛 Fixed Nested Folder Deletion Bug** - Folder deletion now properly handles loading states
+   - **Fixed Nested Folder Deletion Bug** - Folder deletion now properly handles loading states
      - Loading state clears properly on both success and error
      - Modal closes even if deletion fails to prevent UI from getting stuck
      - Comprehensive cache clearing after deletion
-   - **✏️ Simplified File Creation** - Removed folder dropdown for intuitive workflow
+   - **Simplified File Creation** - Removed folder dropdown for intuitive workflow
      - Automatically creates files in current folder location
      - Shows current location indicator (Root or folder path)
      - Eliminates confusion about where file will be created
-   - **❌ Removed File Moving Feature** - Files stay in creation location
+   - **Removed File Moving Feature** - Files stay in creation location
      - Prevents accidental file misplacement
      - Cleaner, more focused editing modal
      - Simplified user experience
-   - **⚡ Optimized Loading Performance** - Files section loads significantly faster
+   - **Optimized Loading Performance** - Files section loads significantly faster
      - Enhanced caching strategy with cache-first approach
      - Reduced unnecessary API calls
      - Parallel fetch execution for folders and files
@@ -242,22 +396,22 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.4.4 (Beta)
 - **Release Date:** December 2025
 - **Performance Optimizations:**
-   - **⚡ Instant Tab Switching** - Files tab data persists when switching between tabs
+   - **Instant Tab Switching** - Files tab data persists when switching between tabs
      - No reloading when navigating back to Files tab
      - Component stays mounted with display:none instead of unmounting
-   - **💾 Smart Caching System** - Folder navigation uses intelligent cache
+   - **Smart Caching System** - Folder navigation uses intelligent cache
      - OS-like file explorer experience with instant folder navigation
      - Cache invalidation only on database operations (create, update, delete)
      - Eliminates unnecessary API calls when browsing folders
-   - **🔄 Refresh Buttons** - Manual refresh controls added to all tabs
+   - **Refresh Buttons** - Manual refresh controls added to all tabs
      - Tasks tab refresh with loader feedback
      - Analytics tab refresh with loader feedback
      - Files tab refresh clears cache and reloads all data
-   - **📊 Unified Initial Load** - All data loads simultaneously on page load
+   - **Unified Initial Load** - All data loads simultaneously on page load
      - Tasks, Analytics, and Files fetch in parallel
      - Single loader for entire dashboard instead of multiple loaders
      - Faster perceived performance
-   - **🚫 Eliminated Flash of Empty State** - Fixed brief "No files and folders" flash
+   - **Eliminated Flash of Empty State** - Fixed brief "No files and folders" flash
      - Proper initial loading state prevents UI flicker
      - Smooth data population without visual glitches
 
@@ -270,14 +424,14 @@ CLOUDINARY_API_SECRET=your_api_secret
      - Tasks stay on their original date and never move to next day
      - Each new day starts fresh with zero tasks
      - Scheduler calculates exact time until midnight for precise execution
-   - **🗑️ Removed Manual Archive Button** - Archive button removed from Analytics tab
+   - **Removed Manual Archive Button** - Archive button removed from Analytics tab
      - Updated UI to show "auto-archived at midnight" message
      - System handles all archiving automatically
 
 ### Version 1.4.2 (Beta)
 - **Release Date:** December 2025
 - **Bug Fixes:**
-   - **🐛 Archive Duplicate Prevention** - Fixed issue where the same day could be archived multiple times
+   - **Archive Duplicate Prevention** - Fixed issue where the same day could be archived multiple times
      - Backend now checks for existing archives before creating new ones
      - Returns error message if date already archived
      - Prevents database pollution with duplicate entries
@@ -285,32 +439,32 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.4.1 (Beta)
 - **Release Date:** December 2025
 - **Highlights:**
-   - **📁 Advanced File & Folder Management System** - Complete hierarchical file organization
-   - **🗂️ Folder System** - Create unlimited folders and subfolders to organize your files
+   - **Advanced File & Folder Management System** - Complete hierarchical file organization
+   - **Folder System** - Create unlimited folders and subfolders to organize your files
      - Nested folder structure with parent-child relationships
      - Breadcrumb navigation for easy folder traversal
      - Pin folders to keep important ones at the top
      - Delete empty folders with confirmation
-   - **📝 Enhanced File Management** - Files can be organized within folders or kept at root level
+   - **Enhanced File Management** - Files can be organized within folders or kept at root level
      - Select folder when creating new files
      - Move files between folders while editing
      - Files inherit current folder location by default
-   - **📌 Folder & File Pinning** - Pin both folders and files for quick access
+   - **Folder & File Pinning** - Pin both folders and files for quick access
      - Pinned items automatically sort to top
      - Individual loading states for each pin action
      - Instant reordering without page reload
-   - **🗑️ Smart Delete System** - Icon-based delete for both files and folders
+   - **Smart Delete System** - Icon-based delete for both files and folders
      - Delete icon buttons next to pin buttons
      - Confirmation modals for both files and folders
      - Backend validation prevents deleting non-empty folders
-   - **⚡ Operation Loading States** - Full-page loader with contextual messages
+   - **Operation Loading States** - Full-page loader with contextual messages
      - "Creating your file..." / "Creating folder..."
      - "Updating your file..." / "Deleting folder..."
      - Prevents double-clicks and improves UX
-   - **📱 Mobile-Optimized Navigation** - Files tab accessible via sidebar on mobile
+   - **Mobile-Optimized Navigation** - Files tab accessible via sidebar on mobile
      - Hidden from mobile navbar icons
      - Available in hamburger menu
-   - **🎨 Consistent Icon Design** - Unified UI with pin and delete icons
+   - **Consistent Icon Design** - Unified UI with pin and delete icons
      - Folder cards show pin/delete icons in top-right
      - File cards match folder styling exactly
      - Yellow folder icons with visual hierarchy
@@ -318,24 +472,24 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Version 1.3.1 (Beta)
 - **Release Date:** December 2025
 - **Highlights:**
-   - **📁 File Management System** - Create, edit, view, and delete unlimited files/notes
-   - **📝 Rich Text Editor** - Full markdown toolbar with 14 formatting options
+   - **File Management System** - Create, edit, view, and delete unlimited files/notes
+   - **Rich Text Editor** - Full markdown toolbar with 14 formatting options
      - Headings (H1, H2, H3)
      - Bold (`**text**`) and Italic (`_text_`)
      - Inline Code (`` `code` ``) and Code Blocks (` ```code``` `)
      - Bullet Lists and Numbered Lists
      - Links, Blockquotes, Tables, and Horizontal Rules
-   - **📌 Pin Files** - Pin important files to keep them at the top with instant reordering
-   - **🔍 File Preview** - Click any file to view full rendered markdown content
-   - **✏️ Inline Editing** - Edit files with same rich text toolbar in fullscreen edit mode
-   - **🗂️ Files Tab** - Dedicated tab alongside Tasks and Analytics with localStorage persistence
-   - **📊 File Cards** - Visual grid layout showing title, markdown preview (stripped formatting), and last updated timestamp
-   - **🎨 Consistent UI** - File management follows same dark/light theme and modal patterns as Tasks
-   - **⚡ Per-File Loading States** - Individual pin button loaders without full page refresh
-   - **🗑️ Delete Confirmation** - Confirmation modal before deleting files
-   - **📱 Fullscreen Modals** - Create, edit, and view modals cover entire viewport with scrollable content
-   - **🌓 Dark Mode Support** - Full dark mode theming for all file components including modals and markdown preview
-   - **💾 Auto-sort** - Pinned files automatically move to top on toggle without page reload
+   - **Pin Files** - Pin important files to keep them at the top with instant reordering
+   - **File Preview** - Click any file to view full rendered markdown content
+   - **Inline Editing** - Edit files with same rich text toolbar in fullscreen edit mode
+   - **Files Tab** - Dedicated tab alongside Tasks and Analytics with localStorage persistence
+   - **File Cards** - Visual grid layout showing title, markdown preview (stripped formatting), and last updated timestamp
+   - **Consistent UI** - File management follows same dark/light theme and modal patterns as Tasks
+   - **Per-File Loading States** - Individual pin button loaders without full page refresh
+   - **Delete Confirmation** - Confirmation modal before deleting files
+   - **Fullscreen Modals** - Create, edit, and view modals cover entire viewport with scrollable content
+   - **Dark Mode Support** - Full dark mode theming for all file components including modals and markdown preview
+   - **Auto-sort** - Pinned files automatically move to top on toggle without page reload
 
 ### Version 1.2.1 (Stable)
 - **Release Date:** December 4, 2025
@@ -361,7 +515,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ---
 
-## 🛠️ Tech Stack
+## Technology Stack
 
 ### Frontend
 - **React** `18.2.0` - UI library
@@ -391,653 +545,1091 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ---
 
-## 📁 Folder Structure
+## Project Structure
 
 ```
 Daylytics/
-├── client/                    # Frontend application
+├── client/                          # Frontend React application
+│   ├── public/
+│   │   └── favicon.ico             # Application icon
 │   ├── src/
-│   │   ├── components/        # Reusable UI components
-│   │   │   ├── Loader.jsx           # Loading spinner component
-│   │   │   ├── Modal.jsx            # Reusable modal component
-│   │   │   ├── Navbar.jsx           # Top navigation bar
-│   │   │   ├── ProfileModal.jsx     # User profile modal (deprecated)
-│   │   │   └── ToastProvider.jsx    # Toast notification system
-│   │   ├── context/           # React context providers
-│   │   │   ├── AuthContext.jsx      # Authentication state management
-│   │   │   └── ThemeContext.jsx     # Dark/light theme management
-│   │   ├── pages/             # Page components
-│   │   │   ├── Dashboard.jsx        # Main dashboard container
-│   │   │   ├── Login.jsx            # Login page
-│   │   │   ├── Register.jsx         # Registration page
-│   │   │   ├── TasksTab.jsx         # Daily tasks management
-│   │   │   ├── FilesTab.jsx         # Files and folders management
-│   │   │   ├── AnalyticsTab.jsx     # Archive analytics and history
-│   │   │   ├── BucketTab.jsx        # Asset/file bucket storage
-│   │   │   └── Settings.jsx         # Settings page (profile, password, storage)
-│   │   ├── styles/            # Custom CSS
-│   │   │   ├── theme.css            # Main theme and component styles
-│   │   │   ├── motions.css          # Animation styles
-│   │   │   └── custom.css           # Additional custom styles
-│   │   ├── api/               # API client
-│   │   │   └── index.js             # Axios configuration and interceptors
-│   │   ├── assets/            # Static assets (images, icons)
-│   │   ├── App.jsx            # Root component with routing
-│   │   └── main.jsx           # Application entry point
-│   ├── index.html             # HTML template
-│   └── package.json           # Frontend dependencies
+│   │   ├── api/
+│   │   │   └── index.js            # Axios configuration and API client
+│   │   ├── assets/                 # Static images and resources
+│   │   ├── components/             # Reusable React components
+│   │   │   ├── Loader.jsx          # Loading spinner component
+│   │   │   ├── Modal.jsx           # Reusable modal dialog
+│   │   │   ├── Navbar.jsx          # Top navigation bar
+│   │   │   ├── ProfileModal.jsx    # User profile modal (deprecated)
+│   │   │   └── ToastProvider.jsx   # Toast notification system
+│   │   ├── context/                # React Context providers
+│   │   │   ├── AuthContext.jsx     # Authentication state management
+│   │   │   ├── DataContext.jsx     # Centralized data operations
+│   │   │   └── ThemeContext.jsx    # Dark/light theme state
+│   │   ├── pages/                  # Page-level components
+│   │   │   ├── AnalyticsTab.jsx    # Archive viewing and analytics
+│   │   │   ├── BucketTab.jsx       # Asset storage and management
+│   │   │   ├── Dashboard.jsx       # Main dashboard container
+│   │   │   ├── FilesTab.jsx        # Document management interface
+│   │   │   ├── Login.jsx           # User login page
+│   │   │   ├── Register.jsx        # User registration page
+│   │   │   ├── Settings.jsx        # Settings and preferences
+│   │   │   └── TasksTab.jsx        # Daily task management
+│   │   ├── styles/                 # CSS stylesheets
+│   │   │   ├── custom.css          # Custom component styles
+│   │   │   ├── motions.css         # Animation definitions
+│   │   │   └── theme.css           # Main theme and variables
+│   │   ├── App.jsx                 # Root component with routing
+│   │   └── main.jsx                # Application entry point
+│   ├── index.html                  # HTML template
+│   ├── package.json                # Frontend dependencies
+│   └── vite.config.js              # Vite configuration
 │
-├── server/                    # Backend application
+├── server/                          # Backend Node.js application
 │   ├── src/
-│   │   ├── models/            # Mongoose models
-│   │   │   ├── User.js              # User model (auth, storage tracking)
-│   │   │   ├── Task.js              # Task model (daily tasks)
-│   │   │   ├── DailyArchive.js      # Archive model (archived tasks)
-│   │   │   ├── File.js              # File model (notes with inline images)
-│   │   │   ├── Folder.js            # Folder model (file organization)
-│   │   │   └── BucketFile.js        # Bucket file model (asset storage)
-│   │   ├── routes/            # API route handlers
-│   │   │   ├── auth.js              # Authentication endpoints
-│   │   │   ├── tasks.js             # Task CRUD operations
-│   │   │   ├── archive.js           # Archive operations
-│   │   │   ├── files.js             # File CRUD and inline image uploads
-│   │   │   ├── folders.js           # Folder CRUD operations
-│   │   │   ├── bucket.js            # Bucket file upload/download/delete
-│   │   │   └── storage.js           # Storage management and tracking
-│   │   ├── middleware/        # Custom middleware
-│   │   │   └── auth.js              # JWT authentication middleware
-│   │   ├── services/          # Background services
-│   │   │   └── autoArchive.js       # Automatic midnight archiving
-│   │   ├── config/            # Configuration
-│   │   │   └── db.js                # MongoDB connection
-│   │   └── index.js           # Server entry point
-│   └── package.json           # Backend dependencies
+│   │   ├── config/
+│   │   │   └── db.js               # MongoDB connection setup
+│   │   ├── middleware/
+│   │   │   └── auth.js             # JWT authentication middleware
+│   │   ├── models/                 # Mongoose data models
+│   │   │   ├── BucketFile.js       # Bucket file schema
+│   │   │   ├── DailyArchive.js     # Archived tasks schema
+│   │   │   ├── File.js             # Document/note schema
+│   │   │   ├── Folder.js           # Folder hierarchy schema
+│   │   │   ├── Task.js             # Daily task schema
+│   │   │   └── User.js             # User account schema
+│   │   ├── routes/                 # API route handlers
+│   │   │   ├── archive.js          # Archive operations
+│   │   │   ├── auth.js             # Authentication endpoints
+│   │   │   ├── bucket.js           # Bucket file operations
+│   │   │   ├── files.js            # File CRUD and inline images
+│   │   │   ├── folders.js          # Folder CRUD operations
+│   │   │   ├── storage.js          # Storage management
+│   │   │   └── tasks.js            # Task CRUD operations
+│   │   ├── services/               # Background services
+│   │   │   ├── autoArchive.js      # Midnight archiving scheduler
+│   │   │   └── cloudinaryService.js # Cloudinary integration
+│   │   └── index.js                # Server entry point
+│   ├── package.json                # Backend dependencies
+│   └── .env                        # Environment variables (not in repo)
 │
-├── .gitignore                 # Git ignore rules
-└── README.md                  # Project documentation
+├── .gitignore                       # Git exclusion rules
+└── README.md                        # Project documentation
 ```
 
 ---
 
-## 🏃 Running Locally
+## Getting Started
 
 ### Prerequisites
-- **Node.js** (v14 or higher)
-- **MongoDB** (local or MongoDB Atlas)
-- **npm** or **yarn**
 
-### Setup Instructions
+Ensure you have the following installed on your system:
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd Daylytics
-   ```
+- **Node.js** (v14.0.0 or higher)
+- **npm** (v6.0.0 or higher) or **yarn**
+- **MongoDB** (local installation or MongoDB Atlas account)
+- **Cloudinary Account** (for file storage)
 
-2. **Setup Backend**
-   ```powershell
-   cd server
-   npm install
-   ```
-   
-   Create `.env` file in `server/` directory:
-   ```env
-   MONGO_URI=mongodb://localhost:27017/daylytics
-   JWT_SECRET=your_secret_key_here
-   PORT=5000
-   BACKEND_URL=http://localhost:5000/api/health
-   ```
+### Installation Steps
 
-3. **Setup Frontend**
-   ```powershell
-   cd client
-   npm install
-   ```
-   
-   Create `.env` file in `client/` directory (optional):
-   ```env
-   VITE_API_URL=http://localhost:5000
-   ```
+#### 1. Clone the Repository
 
-4. **Start Development Servers**
-   
-   **Terminal 1 - Backend:**
-   ```powershell
-   cd server
-   npm run dev
-   ```
-   Server will run on `http://localhost:5000`
-   
-   **Terminal 2 - Frontend:**
-   ```powershell
-   cd client
-   npm run dev
-   ```
-   Client will run on `http://localhost:5173`
+```bash
+git clone https://github.com/yourusername/daylytics.git
+cd daylytics
+```
 
-5. **Access the Application**
-   - Open browser and navigate to `http://localhost:5173`
-   - Register a new account or use seeded test data
+#### 2. Backend Setup
 
-### Optional: Seed Test Data
-```powershell
+Navigate to the server directory and install dependencies:
+
+```bash
+cd server
+npm install
+```
+
+Create a `.env` file in the `server/` directory:
+   Create a `.env` file in the `server/` directory:
+
+```env
+# Database Configuration
+MONGO_URI=mongodb://localhost:27017/daylytics
+# Or for MongoDB Atlas:
+# MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/daylytics
+
+# JWT Secret (use a strong random string)
+JWT_SECRET=your_very_secure_jwt_secret_key_here
+
+# Server Configuration
+PORT=5000
+BACKEND_URL=http://localhost:5000
+
+# Cloudinary Configuration (required for file uploads)
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+Start the backend server:
+
+```bash
+npm run dev     # Development mode with nodemon
+# or
+npm start       # Production mode
+```
+
+The server will run on `http://localhost:5000`
+
+#### 3. Frontend Setup
+
+Open a new terminal, navigate to the client directory, and install dependencies:
+
+```bash
+cd client
+npm install
+```
+
+Optionally, create a `.env` file in the `client/` directory:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Start the frontend development server:
+
+```bash
+npm run dev
+```
+
+The application will run on `http://localhost:5173`
+
+#### 4. Access the Application
+
+Open your browser and navigate to `http://localhost:5173`
+
+### Seeding Test Data (Optional)
+
+To populate the database with sample data:
+
+```bash
 cd server
 npm run seed
 ```
-This creates a test user:
-- **Email:** `test@example.com`
-- **Password:** `password`
-- **Tasks:** 4 tasks for yesterday (2 completed, 2 pending)
+
+This creates a test user account:
+- **Email:** test@example.com
+- **Password:** password
+- **Sample Tasks:** 4 tasks (2 completed, 2 pending)
 
 ---
 
-## 📚 API Endpoints
+## API Documentation
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/profile` - Update user profile
-- `PUT /api/auth/password` - Change password
+### Authentication Endpoints
 
-### Storage
-- `GET /api/storage` - Get user's storage info and all assets
-- `DELETE /api/storage/:type/:id` - Delete specific asset (task/file/bucket)
+#### Register New User
+```
+POST /api/auth/register
+Content-Type: application/json
 
-### Tasks
-- `GET /api/tasks?date=YYYY-MM-DD` - Get tasks for date
-- `POST /api/tasks` - Create new task (with optional image attachment)
-- `PUT /api/tasks/:id` - Edit task title
-- `PATCH /api/tasks/:id` - Toggle task completion
-- `DELETE /api/tasks/:id` - Delete task (and associated image if exists)
-- `DELETE /api/tasks?date=YYYY-MM-DD` - Delete all tasks for date
+Request Body:
+{
+  "name": "string",
+  "email": "string",
+  "password": "string"
+}
 
-### Archive
-- `POST /api/archive/rollover?date=YYYY-MM-DD` - Archive tasks for date
-- `GET /api/archive` - Get all archived days
+Response (201):
+{
+  "token": "jwt_token_string",
+  "user": {
+    "_id": "string",
+    "name": "string",
+    "email": "string",
+    "storageUsed": 0,
+    "storageLimit": 104857600
+  }
+}
+```
 
-### Files
-- `GET /api/files` - Get all files for current user
-- `GET /api/files/:id` - Get specific file
-- `POST /api/files` - Create new file
-- `PUT /api/files/:id` - Update file (title and/or content)
-- `DELETE /api/files/:id` - Delete file
-- `PATCH /api/files/:id/pin` - Toggle file pin status
-- `POST /api/files/upload-inline` - Upload inline image for markdown
+#### Login User
+```
+POST /api/auth/login
+Content-Type: application/json
 
-### Folders
-- `GET /api/folders` - Get folders for current user
-- `POST /api/folders` - Create new folder
-- `PUT /api/folders/:id` - Update folder
-- `DELETE /api/folders/:id` - Delete folder
-- `PATCH /api/folders/:id/pin` - Toggle folder pin status
+Request Body:
+{
+  "email": "string",
+  "password": "string"
+}
 
-### Bucket
-- `GET /api/bucket` - Get all bucket files for user
-- `POST /api/bucket/push` - Upload file to bucket
-- `GET /api/bucket/pull/:id` - Get signed URL for file download
-- `DELETE /api/bucket/delete/:id` - Delete bucket file
+Response (200):
+{
+  "token": "jwt_token_string",
+  "user": { /* user object */ }
+}
+```
+
+#### Get Current User
+```
+GET /api/auth/me
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "_id": "string",
+  "name": "string",
+  "email": "string",
+  "storageUsed": number,
+  "storageLimit": number,
+  "theme": "light|dark|system"
+}
+```
+
+#### Update Profile
+```
+PUT /api/auth/profile
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "name": "string",
+  "email": "string"
+}
+
+Response (200):
+{
+  "msg": "Profile updated",
+  "user": { /* updated user object */ }
+}
+```
+
+#### Change Password
+```
+PUT /api/auth/password
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "currentPassword": "string",
+  "newPassword": "string"
+}
+
+Response (200):
+{
+  "msg": "Password updated successfully"
+}
+```
+
+### Task Endpoints
+
+#### Get Tasks for Date
+```
+GET /api/tasks?date=YYYY-MM-DD
+Authorization: Bearer {token}
+
+Response (200):
+[
+  {
+    "_id": "string",
+    "user": "string",
+    "title": "string",
+    "completed": boolean,
+    "date": "YYYY-MM-DD",
+    "imageUrl": "string|null",
+    "createdAt": "ISO date string",
+    "updatedAt": "ISO date string"
+  }
+]
+```
+
+#### Create Task
+```
+POST /api/tasks
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+Form Data:
+- title: string (required, max 500 chars, 50 words)
+- date: YYYY-MM-DD (required)
+- image: file (optional, image file)
+
+Response (201):
+{
+  /* created task object */
+}
+```
+
+#### Update Task
+```
+PUT /api/tasks/:id
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "title": "string"
+}
+
+Response (200):
+{
+  /* updated task object */
+}
+```
+
+#### Toggle Task Completion
+```
+PATCH /api/tasks/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  /* updated task object with toggled completed status */
+}
+```
+
+#### Delete Task
+```
+DELETE /api/tasks/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "msg": "Task deleted",
+  "deletedImageUrl": "string|null"
+}
+```
+
+#### Delete All Tasks for Date
+```
+DELETE /api/tasks?date=YYYY-MM-DD
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "msg": "All tasks deleted",
+  "count": number,
+  "deletedImages": [...]
+}
+```
+
+### File Endpoints
+
+#### Get All Files
+```
+GET /api/files?folder=folder_id
+Authorization: Bearer {token}
+
+Query Parameters:
+- folder: optional folder ID to filter by
+
+Response (200):
+[
+  {
+    "_id": "string",
+    "user": "string",
+    "title": "string",
+    "content": "string",
+    "folder": "string|null",
+    "isPinned": boolean,
+    "inlineImages": [...],
+    "createdAt": "ISO date string",
+    "updatedAt": "ISO date string"
+  }
+]
+```
+
+#### Create File
+```
+POST /api/files
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "title": "string",
+  "content": "string",
+  "folder": "string|null"
+}
+
+Response (201):
+{
+  /* created file object */
+}
+```
+
+#### Update File
+```
+PUT /api/files/:id
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "title": "string",
+  "content": "string"
+}
+
+Response (200):
+{
+  /* updated file object */
+}
+```
+
+#### Delete File
+```
+DELETE /api/files/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "msg": "File deleted",
+  "deletedImages": [...]
+}
+```
+
+#### Toggle Pin Status
+```
+PATCH /api/files/:id/pin
+Authorization: Bearer {token}
+
+Response (200):
+{
+  /* updated file object */
+}
+```
+
+#### Upload Inline Image
+```
+POST /api/files/upload-inline
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+Form Data:
+- image: file (required)
+- fileId: string (optional)
+
+Response (200):
+{
+  "url": "string",
+  "fileId": "string"
+}
+```
+
+### Folder Endpoints
+
+#### Get Folders
+```
+GET /api/folders?parentFolder=parent_id
+Authorization: Bearer {token}
+
+Query Parameters:
+- parentFolder: optional parent folder ID
+
+Response (200):
+[
+  {
+    "_id": "string",
+    "user": "string",
+    "name": "string",
+    "parentFolder": "string|null",
+    "isPinned": boolean,
+    "createdAt": "ISO date string"
+  }
+]
+```
+
+#### Create Folder
+```
+POST /api/folders
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "name": "string",
+  "parentFolder": "string|null"
+}
+
+Response (201):
+{
+  /* created folder object */
+}
+```
+
+#### Update Folder
+```
+PUT /api/folders/:id
+Authorization: Bearer {token}
+Content-Type: application/json
+
+Request Body:
+{
+  "name": "string",
+  "isPinned": boolean
+}
+
+Response (200):
+{
+  /* updated folder object */
+}
+```
+
+#### Delete Folder
+```
+DELETE /api/folders/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "msg": "Folder deleted"
+}
+
+Error (400 if not empty):
+{
+  "msg": "Cannot delete folder with files or subfolders"
+}
+```
+
+#### Toggle Pin Status
+```
+PATCH /api/folders/:id/pin
+Authorization: Bearer {token}
+
+Response (200):
+{
+  /* updated folder object */
+}
+```
+
+### Bucket Endpoints
+
+#### Get Bucket Files
+```
+GET /api/bucket
+Authorization: Bearer {token}
+
+Response (200):
+[
+  {
+    "_id": "string",
+    "user": "string",
+    "fileName": "string",
+    "mimeType": "string",
+    "fileSize": number,
+    "url": "string",
+    "cloudinaryPublicId": "string",
+    "createdAt": "ISO date string"
+  }
+]
+```
+
+#### Upload File
+```
+POST /api/bucket/push
+Authorization: Bearer {token}
+Content-Type: multipart/form-data
+
+Form Data:
+- file: file (required, max 10MB)
+
+Response (201):
+{
+  /* created bucket file object */
+}
+
+Error (413 if over storage limit):
+{
+  "msg": "Storage limit exceeded"
+}
+```
+
+#### Get Download URL
+```
+GET /api/bucket/pull/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "url": "signed_cloudinary_url"
+}
+```
+
+#### Delete File
+```
+DELETE /api/bucket/delete/:id
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "msg": "File deleted successfully"
+}
+```
+
+### Storage Endpoints
+
+#### Get Storage Info
+```
+GET /api/storage
+Authorization: Bearer {token}
+
+Response (200):
+{
+  "storageUsed": number,
+  "storageLimit": number,
+  "assets": [
+    {
+      "id": "string",
+      "name": "string",
+      "url": "string",
+      "type": "task|file|bucket",
+      "size": number,
+      "mimeType": "string",
+      "taskTitle": "string (for task images)",
+      "fileTitle": "string (for file inline images)",
+      "fileId": "string (for file inline images)"
+    }
+  ]
+}
+```
+
+#### Delete Asset
+```
+DELETE /api/storage/:type/:id?fileId=...&imageUrl=...
+Authorization: Bearer {token}
+
+Parameters:
+- type: "task" | "file" | "bucket"
+- id: task/file/bucket ID
+- fileId: (query param, required for file inline images)
+- imageUrl: (query param, required for file inline images)
+
+Response (200):
+{
+  "msg": "Asset deleted",
+  "newStorageUsed": number
+}
+```
+
+### Archive Endpoints
+
+#### Get Archives
+```
+GET /api/archive
+Authorization: Bearer {token}
+
+Response (200):
+[
+  {
+    "_id": "string",
+    "user": "string",
+    "date": "YYYY-MM-DD",
+    "tasks": [
+      {
+        "title": "string",
+        "completed": boolean
+      }
+    ],
+    "createdAt": "ISO date string"
+  }
+]
+```
+
+#### Archive Tasks (Manual)
+```
+POST /api/archive/rollover?date=YYYY-MM-DD
+Authorization: Bearer {token}
+
+Response (201):
+{
+  "msg": "Tasks archived",
+  "archive": { /* archive object */ }
+}
+
+Error (400 if already archived):
+{
+  "msg": "Already archived this date"
+}
+```
 
 ---
 
-## 📦 Version History
+## Configuration
 
-### v1.6.7 (Current - Beta)
-**Release Date:** December 20, 2025
+### Environment Variables
 
-**🎉 New in This Version:**
-This release introduces the **Bucket (Asset Storage)** feature - a complete file storage system allowing users to upload, download, and manage any type of file with visual previews and integrated storage tracking.
+#### Backend (.env in server/ directory)
 
-**Major Features & Improvements:**
-- ✅ **Bucket (Asset Storage) - NEW FEATURE** - Complete file storage system for all file types
-  - Upload any type of file (images, documents, PDFs, videos, etc.)
-  - Image preview cards with automatic thumbnail generation
-  - Download files via secure signed URLs
-  - Delete files with automatic storage recalculation
-  - Glassmorphism effect on action buttons over image previews
-  - Grid layout with responsive design
-  - File type icons for non-image files
-  - Integrated with storage management system
-- ✅ **Task Image Attachments - NEW FEATURE** - Attach images to tasks for visual context
-  - Upload images directly when creating or editing tasks
-  - Images stored in Cloudinary (folder: `daylytics/tasks`)
-  - Image previews in task cards
-  - Delete task images with storage recalculation
-  - Counts towards 100MB storage limit
-- ✅ **File Inline Images - NEW FEATURE** - Embed images in file markdown content
-  - Upload images directly in the file editor
-  - Markdown toolbar button for image uploads
-  - Images stored in Cloudinary (folder: `daylytics/files/inline`)
-  - Automatic storage tracking with metadata
-  - Proper size tracking for all inline images
-- ✅ **Comprehensive Settings System** - New dedicated settings page with sidebar navigation
-  - Profile section for updating name and email
-  - Password change section with current/new password fields
-  - Storage management section with visual asset overview
-  - Logout section with confirmation modal
-  - Responsive sidebar (500px fixed height on desktop, auto on mobile)
-- ✅ **Storage Management System** - Complete storage tracking and asset management
-  - 100MB (104,857,600 bytes) storage limit per user
-  - Visual progress bar showing storage usage (green <70%, yellow 70-90%, red >90%)
-  - Unified asset view displaying all uploads from tasks, files, and bucket
-  - Asset details table: thumbnail preview, name, type badge, source, size
-  - Delete individual assets directly from storage page
-  - Real-time storage sync after upload/delete operations
-  - Cloudinary integration for fetching file sizes
-- ✅ **Inline Image Storage Tracking** - Accurate size tracking for markdown inline images
-  - File model stores metadata for each inline image (fileId, url, originalName, size)
-  - Upload endpoint tracks image size and updates user storage
-  - Storage calculation includes inline images with proper sizes
-  - Fallback to Cloudinary API for legacy images without metadata
-- ✅ **URL-Based Navigation** - Dashboard tabs now use URL routing for better UX
-  - `/dashboard/tasks` - Tasks tab
-  - `/dashboard/files` - Files tab  
-  - `/dashboard/analytics` - Analytics tab
-  - `/dashboard/bucket` - Bucket tab
-  - `/dashboard/settings` - Settings tab
-  - Tab state persists across page reloads via URL
-  - Browser back/forward buttons work correctly
-  - Default redirect from `/dashboard` to `/dashboard/tasks`
-- ✅ **Analytics Enhancements** - Month and year selector for filtering archives
-  - Month dropdown (January through December)
-  - Year dropdown (2025 to 2035 - 10 years ahead)
-  - Archives filtered by selected month and year combination
-  - Shows "No archives for this month" when empty
-- ✅ **Mobile Delete All Button** - Delete all tasks button now visible in mobile view
-  - Positioned alongside heading in mobile layout
-  - Same confirmation modal as desktop version
-  - Consistent functionality across all screen sizes
-- ✅ **Settings Page Responsive Design** - Mobile-optimized settings UI
-  - Fixed heights for sidebar (500px) and content (min 500px) on desktop
-  - Heights adjust automatically on mobile devices
-  - Loading spinner centered without text for cleaner look
-  - All inline styles moved to theme.css with proper class names
-  - Text ellipsis for long file names (max 200px) and sources (max 150px)
-  - Smaller asset previews on mobile (40px instead of 50px)
-- ✅ **Bucket Image Previews** - Image files display thumbnail previews in bucket cards
-  - Full-width 200px height images with cover fit and rounded corners
-  - Glassmorphism effect on action buttons over images
-    - Semi-transparent white background (rgba 0.2 opacity)
-    - 10px backdrop blur filter
-    - Subtle white border
-  - Non-image files continue showing file type icons
-  - Action buttons positioned at top-right of preview
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `MONGO_URI` | MongoDB connection string | Yes | `mongodb://localhost:27017/daylytics` |
+| `JWT_SECRET` | Secret key for JWT signing | Yes | `your_random_secret_key_here` |
+| `PORT` | Server port number | No | `5000` (default) |
+| `BACKEND_URL` | Backend URL for health checks | No | `http://localhost:5000` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary account cloud name | Yes | `your_cloud_name` |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | Yes | `123456789012345` |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes | `your_api_secret` |
 
-**API Updates:**
-- New `GET /api/storage` endpoint - Returns all user assets with sizes and metadata
-- New `DELETE /api/storage/:type/:id` endpoint - Delete assets by type (task/file/bucket)
-- New `POST /api/bucket/push` endpoint - Upload files to bucket storage
-- New `GET /api/bucket/pull/:id` endpoint - Get signed download URL for bucket files
-- New `DELETE /api/bucket/delete/:id` endpoint - Delete bucket files
-- Updated `POST /api/files/upload-inline` - Accepts optional fileId to store metadata
-- Updated `POST /api/tasks` - Accepts image attachments for tasks
-- User model includes `storageUsed`, `storageLimit`, and `pendingInlineImages` fields
-- File model includes `inlineImages` array for tracking inline image metadata
-- BucketFile model for bucket asset management
-- Storage routes query Cloudinary for legacy image sizes
+#### Frontend (.env in client/ directory)
 
-**UI/UX Updates:**
-- Settings icon button in navbar (replaces separate profile/logout buttons)
-- Settings page with glassmorphism modal backdrop
-- Asset table with responsive columns and hover effects
-- Color-coded storage progress bar
-- Mobile-first responsive design for settings page
-- Consistent loading states across all sections
-- **New Typography** - Geom font family from Google Fonts applied globally
-  - Modern, clean variable font with weights 300-900
-  - Replaces previous system fonts for better visual consistency
-  - Supports both regular and italic styles
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `VITE_API_URL` | Backend API base URL | No | `http://localhost:5000` |
 
-### v1.5.7 (Previous - Beta)
-**Release Date:** December 18, 2025
+### Cloudinary Configuration
 
-**Patch & UX Improvements:**
-- ✅ **Pinned Files Section** - Added a dedicated "Pinned Files" section in the Files tab; pinned files now appear above other files.
-- ✅ **UI Fixes** - Split files into pinned/unpinned lists and fixed a small key bug in the files listing.
-- ✅ **Backend Fix (Folders)** - `PUT /api/folders/:id` now persists `isPinned`; folder pin/unpin operations are saved correctly.
-- ✅ **Misc** - Updated UI version strings to `v1.5.7`.
+Cloudinary is used for all file uploads with the following folder structure:
 
-### v1.5.6 (Previous - Beta)
-**Release Date:** December 16, 2025
+- `daylytics/tasks` - Task image attachments
+- `daylytics/files/inline` - File inline images
+- `daylytics/bucket` - Bucket file storage
 
-**Major Refactoring & Performance:**
-- ✅ **Centralized Data Management** - Created DataContext for all data operations
-  - Moved all database logic from individual tabs to single DataContext
-  - Tasks, Analytics, Files, and Profile operations unified
-  - Single source of truth for entire application
-- ✅ **Modular Architecture** - Each tab separated into dedicated components
-  - TasksTab.jsx, FilesTab.jsx, AnalyticsTab.jsx as independent components
-  - Better code organization and maintainability
-  - Easier to debug and extend individual features
-- ✅ **Single Global Loader** - Replaced individual tab loaders with unified loading system
-  - Global loader for initial app load
-  - Operation loader for CRUD operations (create, update, delete)
-  - Navigation loader for folder navigation
-  - Consistent Loader component used throughout
-- ✅ **Smart Navigation** - Instant folder navigation with intelligent caching
-  - No loader during cached folder navigation
-  - Only shows loader when fetching uncached folders
-  - Prevents "no files" flash during navigation
-- ✅ **Enhanced UX & Accessibility** - Improved user experience throughout
-  - Consistent loading states prevent confusion
-  - Clear feedback for all operations (creating, updating, deleting)
-  - Smooth transitions without jarring empty states
-  - Predictable behavior across all tabs
-- ✅ **Clean Tab Components** - All tabs are now purely presentational
-  - No data fetching logic in tabs
-  - Only UI helper functions (formatting, display logic)
-  - Consistent empty state handling
-- ✅ **Removed Refresh Buttons** - Data refreshes automatically after operations
-  - Tasks refresh after create/update/delete
-  - Files refresh after file/folder operations
-  - Analytics refresh after archiving
-- ✅ **Improved Loader Styling** - Clean, solid background loader
-  - Removed blur effect for better visibility
-  - Solid white/theme background
-  - Consistent full-screen display
-- ✅ **Modal Layout Fix** - Fixed file/folder modals positioning
-  - Modals now render outside tab containers
-  - Proper z-index and positioning
+**Important:** All uploads count towards the 100MB per-user storage limit.
 
-### v1.4.6 (Beta)
-**Release Date:** December 2025
-**Additional Improvements:**
-- ✅ **Favicon Implementation** - Daylytics logo favicon added to enhance branding
-  - Displays in browser tab for easy identification
-  - Improves overall user experience
-- ✅ **Added Sorting Feature** - Users can now sort files by title, date, and size
-  - Sorting preferences are saved and loaded automatically
-  - Fixes formatting bugs related to file display
-  - Removed root files display for cleaner interface
+### CORS Configuration
 
-### v1.4.5 (Beta)
-**Release Date:** December 2025
+The backend is configured to accept requests only from:
+- `http://localhost:5173` (development)
+- `http://localhost:5174` (alternative development port)
+- Production frontend URL (configure in server/src/index.js)
 
-**Files System Improvements & Performance:**
-- ✅ **Fixed Nested Folder Deletion Bug** - Folder deletion now properly handles loading states
-  - Loading state clears properly on both success and error
-  - Modal closes even if deletion fails to prevent UI from getting stuck
-  - Comprehensive cache clearing after deletion
-- ✅ **Simplified File Creation** - Removed folder dropdown for intuitive workflow
-  - Automatically creates files in current folder location
-  - Shows current location indicator (Root or folder path)
-  - Eliminates confusion about where file will be created
-- ✅ **Removed File Moving Feature** - Files stay in creation location
-  - Prevents accidental file misplacement
-  - Cleaner, more focused editing modal
-  - Simplified user experience
-- ✅ **Optimized Loading Performance** - Files section loads significantly faster
-  - Enhanced caching strategy with cache-first approach
-  - Reduced unnecessary API calls
-  - Parallel fetch execution for folders and files
-  - Instant navigation using cached data
+---
 
-### v1.4.4 (Beta)
-**Release Date:** December 2025
+## Development
 
-**Performance Optimizations:**
-- ✅ **Instant Tab Switching** - Files tab data persists when switching between tabs
-  - No reloading when navigating back to Files tab
-  - Component stays mounted with display:none instead of unmounting
-- ✅ **Smart Caching System** - Folder navigation uses intelligent cache
-  - OS-like file explorer experience with instant folder navigation
-  - Cache invalidation only on database operations (create, update, delete)
-  - Eliminates unnecessary API calls when browsing folders
-- ✅ **Refresh Buttons** - Manual refresh controls added to all tabs
-  - Tasks tab refresh with loader feedback
-  - Analytics tab refresh with loader feedback
-  - Files tab refresh clears cache and reloads all data
-- ✅ **Unified Initial Load** - All data loads simultaneously on page load
-  - Tasks, Analytics, and Files fetch in parallel
-  - Single loader for entire dashboard instead of multiple loaders
-  - Faster perceived performance
-- ✅ **Eliminated Flash of Empty State** - Fixed brief "No files and folders" flash
-  - Proper initial loading state prevents UI flicker
-  - Smooth data population without visual glitches
+### Available Scripts
+
+#### Backend (server/)
+
+```bash
+npm run dev      # Start development server with nodemon (auto-restart)
+npm start        # Start production server
+npm run seed     # Seed database with test data
+npm run rollover # Manually archive tasks for all users
+```
+
+#### Frontend (client/)
+
+```bash
+npm run dev      # Start Vite development server (HMR enabled)
+npm run build    # Build for production (output to dist/)
+npm run preview  # Preview production build locally
+```
+
+### Development Workflow
+
+1. **Start Backend:** Run `npm run dev` in the `server/` directory
+2. **Start Frontend:** Run `npm run dev` in the `client/` directory  
+3. **Access App:** Navigate to `http://localhost:5173` in your browser
+4. **Hot Module Replacement:** Frontend automatically reloads on code changes
+5. **Auto-Restart:** Backend automatically restarts on code changes (nodemon)
+
+### Code Style Guidelines
+
+- **Frontend:** React functional components with hooks
+- **Backend:** Express route handlers with async/await
+- **Error Handling:** Try-catch blocks with descriptive error messages
+- **Validation:** Input validation on both client and server
+- **Comments:** JSDoc-style comments for complex functions
+
+### Database Indexes
+
+The application uses optimized MongoDB indexes for performance:
+
+**Tasks:**
+- Compound index: `{ user: 1, date: 1 }`
+- Index: `{ user: 1, createdAt: -1 }`
+
+**Files:**
+- Compound index: `{ user: 1, folder: 1, isPinned: -1, updatedAt: -1 }`
+
+**Folders:**
+- Compound index: `{ user: 1, parentFolder: 1, isPinned: -1 }`
+
+**Archives:**
+- Compound unique index: `{ user: 1, date: 1 }`
+
+**BucketFiles:**
+- Compound index: `{ user: 1, createdAt: -1 }`
+
+---
+
+## Version History
+
+### Version 1.6.8 (Current - Stable)
+**Release Date:** December 22, 2025
+
+**UI/UX Enhancements:**
+- Improved dark mode support for code blocks in markdown preview
+- Fixed storage management table contrast issues in dark mode
+- Enhanced badge text visibility across all themes
+- Standardized Modal component design across all confirmation dialogs
+- Implemented custom modal for asset deletion (replaced browser confirm dialogs)
+- Added hover effects for bucket file actions with proper color transitions
+- Fixed delete button visibility on bucket file cards
+
+**Bug Fixes:**
+- Resolved table text rendering issues in dark mode
+- Fixed storage management table background transparency
+- Corrected type badge colors in both light and dark themes
+- Improved button styling consistency in confirmation modals
 
 **Technical Improvements:**
-- Implemented useRef caching for folders and files
-- Coordinated loading states between Dashboard and FilesTab
-- Added optional loader parameters to fetch functions
-- Cache invalidation strategy on all mutations
+- All modals now use consistent reusable Modal component
+- CSS variables properly applied to all table elements
+- Improved color contrast ratios for accessibility compliance
 
 ---
 
-### v1.4.3 (Beta)
-**Release Date:** December 2025
+### Version 1.6.7 (Previous - Stable)
+**Release Date:** December 20, 2025
 
-**New Features:**
-- ✅ **Automatic Daily Archiving** - System automatically archives tasks at midnight (12:00 AM)
-  - Auto-archive service runs at exactly midnight every day
-  - Archives all tasks from previous day (both completed and incomplete)
-  - Tasks remain on their original date permanently
-  - Each new day starts completely fresh with zero tasks
-  - Scheduler calculates precise time until midnight for accurate execution
-  - No manual intervention required
+**Major Features:**
+- **Bucket Asset Storage System:** Complete file storage solution for any file type (images, documents, PDFs, videos, audio)
+  - Image preview cards with automatic thumbnail generation
+  - Video preview with inline playback controls
+  - PDF viewer with native browser rendering
+  - Word document preview via Office Online
+  - Text file content display
+  - Secure downloads via Cloudinary signed URLs
+  - Maximum 10MB per file, 100MB total storage per user
 
-**UI Updates:**
-- ✅ **Removed Manual Archive Button** - Archive button removed from Analytics tab
-  - Updated Analytics header to show "auto-archived at midnight" message
-  - System fully automates the archiving process
+- **Task Image Attachments:** Upload images directly to tasks
+  - Stored in Cloudinary folder: `daylytics/tasks`
+  - Integrated with storage quota system
+  - Delete images with automatic storage recalculation
 
-**Backend Updates:**
-- New `autoArchive.js` service with midnight scheduler
-- Auto-archive function processes all users automatically
-- Calculates milliseconds until next midnight for precise scheduling
-- Logs all archive operations for monitoring
+- **File Inline Images:** Embed images in markdown files
+  - Markdown toolbar button for image uploads
+  - Stored in Cloudinary folder: `daylytics/files/inline`
+  - Automatic metadata tracking (fileId, url, originalName, size)
+  - Proper storage quota integration
 
----
+- **Comprehensive Settings System:** Dedicated settings page with sidebar navigation
+  - Profile management (name and email updates)
+  - Password change functionality
+  - Storage management with visual asset overview
+  - Logout confirmation modal
+  - Responsive design for mobile devices
 
-### v1.4.2 (Beta)
-**Release Date:** December 2025
+- **Storage Management System:** Complete quota tracking and management
+  - 100MB (104,857,600 bytes) per user limit
+  - Color-coded progress bar (green/yellow/red)
+  - Unified view of all uploaded assets
+  - Individual asset deletion capability
+  - Real-time storage sync
 
-**Bug Fixes:**
-- ✅ **Archive Duplicate Prevention** - Fixed issue where the same day could be archived multiple times
-  - Backend now checks for existing archives before creating new ones
-  - Returns error message if date already archived
-  - Prevents database pollution with duplicate entries
+- **URL-Based Navigation:** Dashboard tabs use URL routing
+  - Routes: `/dashboard/tasks`, `/dashboard/files`, `/dashboard/analytics`, `/dashboard/bucket`, `/dashboard/settings`
+  - Tab state persists across page reloads
+  - Browser back/forward support
 
----
+- **Analytics Enhancements:** Month and year selector for filtering archives
+  - Select any month (January-December)
+  - Select year (2025-2035)
+  - Filter archives by date range
 
-### v1.4.1 (Beta)
-**Release Date:** December 2025
-
-**New Features:**
-- ✅ **Advanced File & Folder Management System** - Complete hierarchical file organization
-- ✅ **Folder System** - Create unlimited folders and subfolders to organize your files
-  - Nested folder structure with parent-child relationships
-  - Breadcrumb navigation for easy folder traversal
-  - Pin folders to keep important ones at the top
-  - Delete empty folders with confirmation
-- ✅ **Enhanced File Management** - Files can be organized within folders or kept at root level
-  - Select folder when creating new files
-  - Move files between folders while editing
-  - Files inherit current folder location by default
-- ✅ **Folder & File Pinning** - Pin both folders and files for quick access
-  - Pinned items automatically sort to top
-  - Individual loading states for each pin action
-  - Instant reordering without page reload
-- ✅ **Smart Delete System** - Icon-based delete for both files and folders
-  - Delete icon buttons next to pin buttons
-  - Confirmation modals for both files and folders
-  - Backend validation prevents deleting non-empty folders
-- ✅ **Operation Loading States** - Full-page loader with contextual messages
-  - "Creating your file..." / "Creating folder..."
-  - "Updating your file..." / "Deleting folder..."
-  - Prevents double-clicks and improves UX
-- ✅ **Mobile-Optimized Navigation** - Files tab accessible via sidebar on mobile
-  - Hidden from mobile navbar icons
-  - Available in hamburger menu
-- ✅ **Consistent Icon Design** - Unified UI with pin and delete icons
-  - Folder cards show pin/delete icons in top-right
-  - File cards match folder styling exactly
-  - Yellow folder icons with visual hierarchy
+- **Typography Update:** Geom font family (Google Fonts) applied globally
+  - Modern variable font with weights 300-900
+  - Improved readability and visual consistency
 
 **API Updates:**
-- `GET /api/folders` - Get folders for current user (with optional parentFolder filter)
-- `GET /api/folders/:id` - Get specific folder
-- `POST /api/folders` - Create new folder
-- `PUT /api/folders/:id` - Update folder (rename/move)
-- `DELETE /api/folders/:id` - Delete empty folder
-- `PATCH /api/folders/:id/pin` - Toggle folder pin status
-- Updated `GET /api/files` - Now accepts folder query parameter
-- Updated `POST /api/files` - Accepts folder field for organization
-- Updated `PUT /api/files/:id` - Can move files between folders
-
-**Database Updates:**
-- New `Folder` model with user, name, parentFolder, isPinned fields
-- Updated `File` model with folder reference field
-- Compound indexes for optimized queries
+- New storage management endpoints (`GET /api/storage`, `DELETE /api/storage/:type/:id`)
+- New bucket endpoints (`POST /api/bucket/push`, `GET /api/bucket/pull/:id`, `DELETE /api/bucket/delete/:id`)
+- Updated file upload endpoint with metadata tracking
+- User model updated with storage fields
 
 ---
 
-### v1.3.1 (Beta)
-**Release Date:** December 2025
+### Version 1.5.7 (Beta)
+**Release Date:** December 18, 2025
 
-**New Features:**
-- ✅ **File Management System** - Create, edit, view, delete, and organize unlimited files/notes
-- ✅ **Rich Text Editor** - Full markdown toolbar with 14 formatting options:
-  - **Headings:** H1, H2, H3
-  - **Text Styling:** Bold (`**text**`), Italic (`_text_`)
-  - **Lists:** Bullet lists, Numbered lists
-  - **Code:** Inline code (`` `code` ``), Code blocks (` ```code``` `)
-  - **Advanced:** Links, Blockquotes, Tables, Horizontal rules
-- ✅ **Pin Files** - Pin important files to keep them at the top with instant reordering
-- ✅ **Fullscreen Modals** - Create, edit, and view modals cover entire viewport for distraction-free writing
-- ✅ **Markdown Rendering** - File content rendered with `marked` library, showing formatted preview
-- ✅ **File Cards** - Beautiful grid layout with title truncation, stripped markdown preview, and "Last updated" timestamp
-- ✅ **Files Tab** - New dedicated tab in navigation with localStorage persistence
-- ✅ **Character Limits** - Title max 200 chars, Content max 50,000 chars with live counters
-- ✅ **Delete Confirmation** - Modal confirmation before deleting files
-
-**Improvements:**
-- ✅ **Consistent UI** - File management follows same dark/light theme and modal patterns as Tasks
-- ✅ **Responsive Toolbar** - Rich text toolbar adapts to mobile screens with horizontal scrolling
-- ✅ **Per-File Loading States** - Individual pin button loaders without full page refresh
-- ✅ **Auto-sort on Pin** - Pinned files automatically move to top when toggled (no page reload needed)
-- ✅ **Dark Mode Support** - Full theming for modals, toolbar, markdown preview, and all file components
-- ✅ **Backdrop Blur** - Modal backgrounds match task modal behavior with blur effect
-- ✅ **Click-Outside-to-Close** - Modals close when clicking backdrop (same UX as tasks)
-- ✅ **Conditional Dashboard Sections** - Welcome/hero sections hide when Files tab is active
-- ✅ **File Validation** - Server-side validation for title and content length
-- ✅ **Indexed Database** - Optimized queries with compound indexes on user, isPinned, and timestamps
-- ✅ **Smart Formatting** - Toolbar buttons properly handle text selection and cursor positioning
-
-**API Updates:**
-- `GET /api/files` - Fetch all files for logged-in user (sorted by pinned and updatedAt)
-- `GET /api/files/:id` - Get specific file by ID
-- `POST /api/files` - Create new file with validation
-- `PUT /api/files/:id` - Update file title and/or content
-- `DELETE /api/files/:id` - Delete file
-- `PATCH /api/files/:id/pin` - Toggle pin status
-
-**Bug Fixes:**
-- ✅ Fixed inline code, bold, and italic formatting not applying to selected text
-- ✅ Fixed modal border-radius in dark mode
-- ✅ Fixed toolbar colors in dark mode
-- ✅ Fixed markdown preview showing white background in dark mode
-- ✅ Fixed theme toggle showing unnecessary loader
-- ✅ Fixed modals covering entire viewport with proper scrolling
+**Features & Fixes:**
+- Dedicated "Pinned Files" section in Files tab
+- Split files into pinned/unpinned lists
+- Fixed folder pin/unpin persistence in backend
+- Updated UI version strings
 
 ---
 
-### v1.2.1 (Stable)
-**Release Date:** December 4, 2025
+### Version 1.5.6 (Beta)
+**Release Date:** December 16, 2025
 
-**New Features:**
-- ✅ **Task Editing** - Edit task titles with inline editing mode (Save/Cancel icons with hover animations)
-- ✅ **Delete All Tasks** - Bulk delete all tasks for a specific date with confirmation modal
-- ✅ **Task View Modal** - Click on task content to view full details in popup
-- ✅ **Task Validation** - Maximum 500 characters and 50 words per task title
-- ✅ **Text Truncation** - Long task titles display with ellipsis (...) and proper overflow handling
+**Major Refactoring:**
+- **DataContext:** Centralized all data operations
+  - Unified Tasks, Analytics, Files, and Profile operations
+  - Single source of truth for application state
+  
+- **Modular Architecture:** Separated tabs into independent components
+  - TasksTab.jsx, FilesTab.jsx, AnalyticsTab.jsx
+  - Improved code organization and maintainability
 
-**Improvements:**
-- ✅ **Improved Archive System** - Tasks no longer deleted after archiving, preserved in database for history
-- ✅ **Checkbox-only Toggle** - Task completion only triggers when clicking checkbox (not entire row)
-- ✅ **Enhanced Button Styles** - Edit, save, cancel buttons use same hover animation pattern as delete
-- ✅ **Better Mobile Spacing** - Reduced padding and margins on mobile to prevent component overlap
+- **Global Loader System:** Replaced individual loaders
+  - Global loader for initial app load
+  - Operation loader for CRUD operations
+  - Navigation loader for folder traversal
 
-**API Updates:**
-- `PUT /api/tasks/:id` - New endpoint for editing task titles
-- `DELETE /api/tasks?date=YYYY-MM-DD` - New endpoint for bulk deletion
-- Enhanced validation on task creation and editing
+- **Smart Navigation:** Intelligent caching system
+  - Instant folder navigation with cached data
+  - No loader for cached content
+  - Cache invalidation on mutations
 
----
-
-### v1.1.1 (Stable)
-**Release Date:** December 4, 2025
-
-**Fixes & Improvements:**
-- ✅ Fixed login redirection — users now go straight to the dashboard after successful login.
-- ✅ Theme improvements — dark/light theme is now dynamic and fetched/persisted per-user (supports `system`, `light`, `dark`).
-- ✅ Better UX for task updates/deletes — per-task loaders and disabled controls while requests are in-flight.
-- ✅ Improved responsiveness on very small screens so layout and controls remain usable.
-- ✅ Added GitHub contribution button directly on the dashboard.
-- ✅ Fixed task border visual issues for consistent item styling.
+- **UX Improvements:**
+  - Consistent loading states
+  - Clear operation feedback
+  - Smooth transitions without empty state flashes
+  - Removed manual refresh buttons (automatic refresh)
 
 ---
 
-### v1.0.1 (Stable)
-**Release Date:** December 4, 2025
-
-**New Features:**
-- ✅ Server pinging mechanism - Keeps backend alive and reduces cold start delays
-- ✅ Version display on dashboard - Shows current version in bottom-right corner
-- ✅ Updated version badges on auth pages
-- ✅ CORS security - Configured to only allow localhost and production frontend (https://daylytics.onrender.com)
-
-**Improvements:**
-- Optimized server response times with automated health checks every 10 minutes
-- Better user experience with reduced initial request latency
-- Enhanced security with restricted CORS origins
-
-**Tech Updates:**
-- Added Axios to server dependencies for health check requests
-- Configured CORS whitelist for allowed origins
-
----
-
-### v1.0.0 (Stable)
+### Version 1.4.6 (Beta)
 **Release Date:** December 2025
 
 **Features:**
-- ✅ Complete authentication system
-- ✅ Daily task CRUD operations
-- ✅ Task archiving and analytics
-- ✅ Profile management
-- ✅ Dark/light theme toggle
-- ✅ Mobile-responsive design
-- ✅ Toast notification system
-- ✅ Split-screen auth pages
-
-**Tech Stack:**
-- React 18.2.0, Vite 5.0.0
-- Express 4.18.2, MongoDB, Mongoose 7.0.0
-- JWT authentication, bcryptjs
+- Favicon implementation with Daylytics logo
+- File sorting by title, date, and size
+- Automatic save/load of sorting preferences
+- Removed root files display for cleaner interface
 
 ---
 
-## 🧪 Development Scripts
+### Version 1.4.5 (Beta)
+**Release Date:** December 2025
 
-### Server Scripts
-```powershell
-npm run dev      # Start development server with nodemon
-npm start        # Start production server
-npm run seed     # Seed test data
-npm run rollover # Archive tasks for all users
-```
-
-### Client Scripts
-```powershell
-npm run dev      # Start Vite dev server
-npm run build    # Build for production
-npm run preview  # Preview production build
-```
+**Improvements:**
+- Fixed nested folder deletion loading states
+- Simplified file creation workflow (auto-creates in current folder)
+- Removed file moving feature for cleaner UX
+- Optimized loading performance with enhanced caching
+- Parallel fetch execution for folders and files
 
 ---
 
-## 📝 License
+### Version 1.4.4 (Beta)
+**Release Date:** December 2025
 
-MIT
+**Performance Optimizations:**
+- Instant tab switching with persistent data
+- Smart caching system for folder navigation
+- Manual refresh controls for all tabs
+- Unified initial data loading
+- Eliminated empty state flashing
 
 ---
+
+### Version 1.4.3 (Beta)
+**Release Date:** December 2025
+
+**Automation:**
+- Automatic daily archiving at midnight (12:00 AM)
+- Archives all tasks from previous day
+- Removed manual archive button
+- Precise scheduler for midnight execution
+
+---
+
+### Version 1.4.2 (Beta)
+**Release Date:** December 2025
+
+**Bug Fix:**
+- Archive duplicate prevention
+- Backend validation for existing archives
+
+---
+
+### Version 1.4.1 (Beta)
+**Release Date:** December 2025
+
+**Major Features:**
+- **File & Folder Management System:**
+  - Unlimited nested folder structure
+  - Breadcrumb navigation
+  - Pin folders and files
+  - Delete with confirmation modals
+  - Backend validation prevents deleting non-empty folders
+
+- **Loading States:** Contextual full-page loaders
+- **Mobile Optimization:** Files tab in sidebar menu
+- **Icon Design:** Unified pin/delete icons
+
+---
+
+### Version 1.3.1 (Beta)
+**Release Date:** December 2025
+
+**Major Features:**
+- **File Management System:** Complete CRUD for files/notes
+- **Rich Text Editor:** 14 markdown formatting options
+- **Fullscreen Modals:** Distraction-free editing
+- **Markdown Rendering:** Live preview with `marked` library
+- **Pin Files:** Keep important files at top
+- **Character Limits:** Title (200 chars), Content (50,000 chars)
+
+---
+
+### Version 1.2.1 (Stable)
+**Release Date:** December 4, 2025
+
+**Features:**
+- Task editing with inline mode
+- Bulk delete all tasks for date
+- Task view modal
+- Task validation (500 chars, 50 words)
+- Text truncation with ellipsis
+- Improved archive system (tasks preserved)
+- Checkbox-only completion toggle
+
+---
+
+### Version 1.1.1 (Stable)
+**Release Date:** December 4, 2025
+
+**Fixes:**
+- Fixed login redirection to dashboard
+- Dynamic theme system (system, light, dark)
+- Per-task loaders for updates/deletes
+- Improved mobile responsiveness
+- GitHub contribution button
+- Fixed task border styling
+
+---
+
+### Version 1.0.1 (Stable)
+**Release Date:** December 4, 2025
+
+**Features:**
+- Server pinging mechanism (reduces cold starts)
+- Version display on dashboard
+- CORS security (localhost and production only)
+- Automated health checks every 10 minutes
+
+---
+
+### Version 1.0.0 (Stable)
+**Release Date:** December 2025
+
+**Initial Release:**
+- Complete authentication system with JWT
+- Daily task CRUD operations
+- Task archiving and analytics
+- Profile management
+- Dark/light theme toggle
+- Mobile-responsive design
+- Toast notification system
+- Split-screen auth pages
+
+---
+
+## License
+
+MIT License
+
+Copyright (c) 2025 Daylytics
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
