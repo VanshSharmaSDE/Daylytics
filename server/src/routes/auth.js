@@ -80,6 +80,15 @@ router.put('/settings', auth, async (req, res) => {
       }
     }
 
+    // validate task view mode if provided
+    if (settings.hasOwnProperty('task-view-mode')) {
+      const val = settings['task-view-mode'];
+      const allowed = ['list', 'card', 'compact', 'circle'];
+      if (typeof val !== 'string' || !allowed.includes(val)) {
+        return res.status(400).json({ msg: 'Invalid task view mode value' });
+      }
+    }
+
     // sanitize current settings by removing non-primitive values (avoid carrying over DOM/React nodes)
     const sanitizedCurrent = {};
     for (const [k, v] of Object.entries(req.user.settings || {})) {

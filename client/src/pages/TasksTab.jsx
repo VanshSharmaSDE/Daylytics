@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Modal from "../components/Modal";
 import { useData } from "../context/DataContext";
 
@@ -17,11 +17,14 @@ const TasksTab = ({ user }) => {
     fetchTasks,
     addTask,
     toggleTask,
+    toggleDaily,
     updateTask,
     deleteTask,
     deleteAllTasks,
     uploadTaskImage,
     deleteTaskImage,
+    taskViewMode,
+    updateTaskViewMode,
   } = useData();
 
   const [title, setTitle] = useState("");
@@ -29,6 +32,7 @@ const TasksTab = ({ user }) => {
   const [editTitle, setEditTitle] = useState("");
   const [viewingTask, setViewingTask] = useState(null);
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(null);
   const [deletingImage, setDeletingImage] = useState(null);
 
@@ -68,6 +72,13 @@ const TasksTab = ({ user }) => {
   const handleDeleteAll = async () => {
     setShowDeleteAllModal(false);
     await deleteAllTasks();
+  };
+
+  const confirmDeleteTask = async () => {
+    if (taskToDelete) {
+      await deleteTask(taskToDelete);
+      setTaskToDelete(null);
+    }
   };
 
   const handleImageUpload = async (taskId, file) => {
@@ -110,32 +121,452 @@ const TasksTab = ({ user }) => {
     }
   };
 
+  const goToPreviousDay = () => {
+    const currentDate = new Date(date);
+    currentDate.setDate(currentDate.getDate() - 1);
+    setDate(formatDate(currentDate));
+  };
+
+  const goToNextDay = () => {
+    const currentDate = new Date(date);
+    currentDate.setDate(currentDate.getDate() + 1);
+    setDate(formatDate(currentDate));
+  };
+
+  const renderTaskActions = (t) => (
+    <div className="d-flex align-items-center gap-1">
+      <button
+        className={cx("task-edit-btn", t.isDaily && "text-primary")}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleDaily(t._id);
+        }}
+        title={t.isDaily ? "Remove daily repeat" : "Make this task repeat daily"}
+      >
+        <i className={t.isDaily ? "ri-repeat-fill" : "ri-repeat-line"}></i>
+      </button>
+      <button
+        className="task-edit-btn"
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          startEdit(t);
+        }}
+      >
+        <i className="ri-edit-line"></i>
+      </button>
+      <button
+        className="task-delete-btn"
+        type="button"
+        disabled={deletingTasks.has(t._id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setTaskToDelete(t._id);
+        }}
+      >
+        {deletingTasks.has(t._id) ? (
+          <div
+            className="spinner-border spinner-border-sm text-danger"
+            role="status"
+          />
+        ) : (
+          <i className="ri-delete-bin-line"></i>
+        )}
+      </button>
+    </div>
+  );
+
+  const renderListView = () => (
+    <div key="list-view" className="list-group">
+      {tasks.length === 0 ? (
+        <div className="list-group-item text-muted text-center py-4">
+          No tasks for this day
+        </div>
+      ) : (
+        tasks.map((t) => (
+          <div
+            key={t._id}
+            className={cx(
+              "list-group-item d-flex justify-content-between align-items-center",
+              t.done && "list-group-item-success"
+            )}
+          >
+            {editingTask?._id === t._id ? (
+              <>
+                <div className="d-flex align-items-center gap-2 me-1 flex-grow-1">
+                  <input
+                    className="form-control"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    maxLength={500}
+                    autoFocus
+                  />
+                </div>
+                <div className="d-flex gap-2">
+                  <button
+                    className="task-edit-save-btn"
+                    onClick={saveEdit}
+                    title="Save"
+                  >
+                    <i className="ri-check-line"></i>
+                  </button>
+                  <button
+                    className="task-edit-cancel-btn"
+                    onClick={cancelEdit}
+                    title="Cancel"
+                  >
+                    <i className="ri-close-line"></i>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="d-flex align-items-center gap-3 flex-grow-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setViewingTask(t);
+                  }}
+                  role="button"
+                >
+                  {updatingTasks.has(t._id) ? (
+                    <div
+                      className="spinner-border spinner-border-sm text-primary"
+                      role="status"
+                    />
+                  ) : (
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={t.done}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleTask(t._id);
+                      }}
+                    />
+                  )}
+                  <span
+                    className={cx(
+                      "task-title-truncate",
+                      t.done && "text-decoration-line-through"
+                    )}
+                  >
+                    {t.title}
+                    {t.isDaily && (
+                      <span
+                        className="badge bg-primary ms-2"
+                        style={{ fontSize: "0.65rem", verticalAlign: "middle" }}
+                        title="This task repeats daily"
+                      >
+                        Daily
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="d-flex align-items-center ms-1 gap-1">
+                  <span className="task-item-time">
+                    {formatTimestamp(t.createdAt)}
+                  </span>
+                  {renderTaskActions(t)}
+                </div>
+              </>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const renderCardView = () => (
+    <div key="card-view" className="row g-3">
+      {tasks.length === 0 ? (
+        <div className="col-12">
+          <div className="card">
+            <div className="card-body text-muted text-center py-4">
+              No tasks for this day
+            </div>
+          </div>
+        </div>
+      ) : (
+        tasks.map((t) => (
+          <div key={t._id} className="col-12 col-md-6 col-lg-4">
+            <div className={cx("card h-100", t.done && "border-success")}>
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-start mb-2">
+                  <div className="d-flex align-items-start gap-2 flex-grow-1">
+                    {updatingTasks.has(t._id) ? (
+                      <div
+                        className="spinner-border spinner-border-sm text-primary mt-1"
+                        role="status"
+                      />
+                    ) : (
+                      <input
+                        className="form-check-input mt-1"
+                        type="checkbox"
+                        checked={t.done}
+                        onChange={() => toggleTask(t._id)}
+                      />
+                    )}
+                    <div className="flex-grow-1">
+                      <p
+                        className={cx(
+                          "card-text mb-2",
+                          t.done && "text-decoration-line-through"
+                        )}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => setViewingTask(t)}
+                      >
+                        {t.title}
+                      </p>
+                      {t.isDaily && (
+                        <span className="badge bg-primary mb-2">Daily</span>
+                      )}
+                      <small className="text-muted d-block">
+                        {formatTimestamp(t.createdAt)}
+                      </small>
+                    </div>
+                  </div>
+                  <div className="d-flex gap-1">
+                    {renderTaskActions(t)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const renderCompactView = () => (
+    <div key="compact-view" className="list-group list-group-flush">
+      {tasks.length === 0 ? (
+        <div className="list-group-item text-muted text-center py-3">
+          No tasks for this day
+        </div>
+      ) : (
+        tasks.map((t) => (
+          <div
+            key={t._id}
+            className={cx(
+              "list-group-item compact-view-item d-flex justify-content-between align-items-center py-2",
+              t.done && "bg-success bg-opacity-10"
+            )}
+          >
+            <div className="d-flex align-items-center gap-2 flex-grow-1">
+              {updatingTasks.has(t._id) ? (
+                <div
+                  className="spinner-border spinner-border-sm text-primary"
+                  role="status"
+                  style={{ width: "1rem", height: "1rem" }}
+                />
+              ) : (
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  checked={t.done}
+                  onChange={() => toggleTask(t._id)}
+                  style={{ width: "1rem", height: "1rem" }}
+                />
+              )}
+              <span
+                className={cx(
+                  "small",
+                  t.done && "text-decoration-line-through"
+                )}
+                style={{ cursor: "pointer" }}
+                onClick={() => setViewingTask(t)}
+              >
+                {t.title}
+                {t.isDaily && (
+                  <span
+                    className="badge bg-primary ms-1"
+                    style={{ fontSize: "0.6rem" }}
+                  >
+                    D
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="d-flex align-items-center gap-1">
+              {renderTaskActions(t)}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const renderCircleView = () => (
+    <div key="circle-view" className="row g-4">
+      {tasks.length === 0 ? (
+        <div className="col-12">
+          <div className="text-muted text-center py-4">
+            No tasks for this day
+          </div>
+        </div>
+      ) : (
+        tasks.map((t) => (
+          <div key={t._id} className="col-6 col-md-4 col-lg-3">
+            <div className="text-center circle-view-item">
+              <div
+                className={cx(
+                  "rounded-circle mx-auto d-flex align-items-center justify-content-center position-relative",
+                  t.done ? "bg-success" : "bg-secondary bg-opacity-25"
+                )}
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  cursor: "pointer",
+                  border: t.done ? "3px solid var(--bs-success)" : "3px solid var(--border)"
+                }}
+                onClick={() => setViewingTask(t)}
+              >
+                {updatingTasks.has(t._id) ? (
+                  <div
+                    className="spinner-border text-primary"
+                    role="status"
+                  />
+                ) : (
+                  <div className="text-center p-3">
+                    <i
+                      className={cx(
+                        t.done ? "ri-checkbox-circle-fill" : "ri-checkbox-blank-circle-line",
+                        t.done ? "text-white" : ""
+                      )}
+                      style={{ fontSize: "2rem" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTask(t._id);
+                      }}
+                    ></i>
+                  </div>
+                )}
+              </div>
+              <p
+                className={cx(
+                  "mt-2 mb-1 small",
+                  t.done && "text-decoration-line-through"
+                )}
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                }}
+              >
+                {t.title}
+              </p>
+              {t.isDaily && (
+                <span className="badge bg-primary" style={{ fontSize: "0.6rem" }}>
+                  Daily
+                </span>
+              )}
+              <div className="d-flex justify-content-center gap-1 mt-2">
+                {renderTaskActions(t)}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+
+  const renderTasks = () => {
+    switch (taskViewMode) {
+      case 'card':
+        return renderCardView();
+      case 'compact':
+        return renderCompactView();
+      case 'circle':
+        return renderCircleView();
+      default:
+        return renderListView();
+    }
+  };
+
   return (
     <>
       <div className="tasks-tab">
         {/* Header - Mobile */}
         <div className="d-flex d-md-none justify-content-between align-items-center mb-3">
           <h2 className="mb-0">Tasks</h2>
-          {tasks.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-outline-danger btn-sm"
-              onClick={() => setShowDeleteAllModal(true)}
-              title="Delete all tasks"
-            >
-              <i className="ri-delete-bin-line"></i>
-            </button>
-          )}
+          <div className="d-flex gap-2">
+            {/* Mobile View Mode Toggles */}
+            <div className="btn-group" role="group">
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('list')}
+                title="List view"
+              >
+                <i className="ri-list-check"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'card' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('card')}
+                title="Card view"
+              >
+                <i className="ri-layout-grid-line"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'compact' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('compact')}
+                title="Compact view"
+              >
+                <i className="ri-align-justify"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'circle' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('circle')}
+                title="Circle view"
+              >
+                <i className="ri-checkbox-blank-circle-line"></i>
+              </button>
+            </div>
+            {tasks.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => setShowDeleteAllModal(true)}
+                title="Delete all tasks"
+              >
+                <i className="ri-delete-bin-line"></i>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Mobile Date Controls */}
         <div className="d-flex d-md-none gap-2 mb-4">
+          <button
+            className="btn btn-outline-secondary"
+            type="button"
+            onClick={goToPreviousDay}
+            title="Previous day"
+          >
+            <i className="ri-arrow-left-s-line"></i>
+          </button>
           <input
             type="date"
             className="form-control"
             value={date}
             onChange={(e) => setDate(e.target.value)}
           />
+          <button
+            className="btn btn-outline-secondary"
+            type="button"
+            onClick={goToNextDay}
+            title="Next day"
+          >
+            <i className="ri-arrow-right-s-line"></i>
+          </button>
           <button
             className="btn btn-outline-primary"
             type="button"
@@ -150,13 +581,65 @@ const TasksTab = ({ user }) => {
           <h2 className="mb-0">Tasks</h2>
           
           <div className="d-flex gap-2 align-items-center">
+            {/* View Mode Toggles */}
+            <div className="btn-group" role="group">
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('list')}
+                title="List view"
+              >
+                <i className="ri-list-check"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'card' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('card')}
+                title="Card view"
+              >
+                <i className="ri-layout-grid-line"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'compact' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('compact')}
+                title="Compact view"
+              >
+                <i className="ri-align-justify"></i>
+              </button>
+              <button
+                type="button"
+                className={cx("btn btn-sm", taskViewMode === 'circle' ? 'btn-primary' : 'btn-outline-secondary')}
+                onClick={() => updateTaskViewMode('circle')}
+                title="Circle view"
+              >
+                <i className="ri-checkbox-blank-circle-line"></i>
+              </button>
+            </div>
+
             {/* Date Picker Group */}
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={goToPreviousDay}
+              title="Previous day"
+            >
+              <i className="ri-arrow-left-s-line"></i>
+            </button>
             <input
               type="date"
               className="form-control"
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={goToNextDay}
+              title="Next day"
+            >
+              <i className="ri-arrow-right-s-line"></i>
+            </button>
             <button
               className="btn btn-outline-primary"
               type="button"
@@ -224,124 +707,7 @@ const TasksTab = ({ user }) => {
           </div>
         </form>
 
-        <div className="list-group">
-          {tasks.length === 0 ? (
-            <div className="list-group-item text-muted text-center py-4">
-              No tasks for this day
-            </div>
-          ) : (
-            tasks.map((t) => (
-            <div
-              key={t._id}
-              className={`list-group-item d-flex justify-content-between align-items-center ${
-                t.done ? "list-group-item-success" : ""
-              }`}
-            >
-              {editingTask?._id === t._id ? (
-                <>
-                  <div className="d-flex align-items-center gap-2 me-1 flex-grow-1">
-                    <input
-                      className="form-control"
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      maxLength={500}
-                      autoFocus
-                    />
-                  </div>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="task-edit-save-btn"
-                      onClick={saveEdit}
-                      title="Save"
-                    >
-                      <i className="ri-check-line"></i>
-                    </button>
-                    <button
-                      className="task-edit-cancel-btn"
-                      onClick={cancelEdit}
-                      title="Cancel"
-                    >
-                      <i className="ri-close-line"></i>
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div
-                    className="d-flex align-items-center gap-3 flex-grow-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewingTask(t);
-                    }}
-                    role="button"
-                  >
-                    {updatingTasks.has(t._id) ? (
-                      <div
-                        className="spinner-border spinner-border-sm text-primary"
-                        role="status"
-                      />
-                    ) : (
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={t.done}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          toggleTask(t._id);
-                        }}
-                      />
-                    )}
-                    <span
-                      className={cx(
-                        "task-title-truncate",
-                        t.done && "text-decoration-line-through"
-                      )}
-                    >
-                      {t.title}
-                    </span>
-                  </div>
-                  <div className="d-flex align-items-center ms-1 gap-1">
-                    <span className="task-item-time">
-                      {formatTimestamp(t.createdAt)}
-                    </span>
-                    <button
-                      className="task-edit-btn"
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEdit(t);
-                      }}
-                    >
-                      <i className="ri-edit-line"></i>
-                    </button>
-                    <button
-                      className="task-delete-btn"
-                      type="button"
-                      disabled={deletingTasks.has(t._id)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTask(t._id);
-                      }}
-                    >
-                      {deletingTasks.has(t._id) ? (
-                        <div
-                          className="spinner-border spinner-border-sm text-danger"
-                          role="status"
-                        />
-                      ) : (
-                        <i className="ri-delete-bin-line"></i>
-                      )}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))
-          )}
-        </div>
+        {renderTasks()}
       </div>
 
       <Modal
@@ -487,6 +853,34 @@ const TasksTab = ({ user }) => {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        title="Delete task?"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setTaskToDelete(null)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-outline-danger"
+              type="button"
+              onClick={confirmDeleteTask}
+            >
+              Delete
+            </button>
+          </div>
+        }
+      >
+        <p className="mb-0">
+          Are you sure you want to delete this task? This action cannot be undone.
+        </p>
       </Modal>
     </>
   );

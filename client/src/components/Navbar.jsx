@@ -6,6 +6,7 @@ const navItems = [
   { id: "analytics", label: "Analytics", icon: "ri-line-chart-line" },
   { id: "files", label: "Files", icon: "ri-file-text-line" },
   { id: "bucket", label: "Bucket", icon: "ri-archive-line" },
+  { id: "editor", label: "Editor", icon: "ri-code-box-line", beta: true },
 ];
 
 const Navbar = ({
@@ -43,7 +44,7 @@ const Navbar = ({
       <header className="app-navbar panel-shadow">
         <div className="brand">Daylytics</div>
         <div className="nav-icons-mobile d-flex d-md-none">
-          {navItems.map((item) => (
+          {navItems.filter(item => item.id !== 'editor').map((item) => (
             <button
               type="button"
               key={item.id}
@@ -66,6 +67,7 @@ const Navbar = ({
               onClick={() => handleTab(item.id)}
             >
               {item.label}
+              {item.beta && <span className="badge bg-primary ms-1" style={{ fontSize: '0.6rem', verticalAlign: 'super' }}>BETA</span>}
             </button>
           ))}
         </nav>

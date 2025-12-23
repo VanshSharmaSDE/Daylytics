@@ -18,9 +18,53 @@ const formatDate = (d = new Date()) => d.toISOString().slice(0, 10);
 router.get('/', auth, async (req, res) => {
   try {
     const date = req.query.date || formatDate();
+    
+    // Get tasks for the specific date
     const tasks = await Task.find({ user: req.user._id, date }).sort({ createdAt: 1 });
-    res.json(tasks);
+    
+    // Get all daily tasks that are not for today's date
+    // Find daily tasks created before or on this date that should appear today
+    const dailyTasks = await Task.find({
+      user: req.user._id,
+      isDaily: true,
+      date: { $lte: date }
+    }).sort({ createdAt: 1 });
+    
+    // For each daily task, check if it already exists for this date
+    const existingTaskTitles = new Set(tasks.map(t => t.title));
+    const tasksToCreate = [];
+    
+    for (const dailyTask of dailyTasks) {
+      // Skip if this daily task is already in today's tasks
+      if (dailyTask.date === date) continue;
+      
+      // Check if a task with the same title already exists for this date
+      const existsForDate = tasks.some(t => 
+        t.title === dailyTask.title && !t.isDaily
+      );
+      
+      if (!existsForDate) {
+        // Create a new instance for this date
+        const newTask = new Task({
+          user: req.user._id,
+          date: date,
+          title: dailyTask.title,
+          done: false,
+          isDaily: false // This is an instance, not the template
+        });
+        await newTask.save();
+        tasksToCreate.push(newTask);
+      }
+    }
+    
+    // Return all tasks including newly created ones
+    const allTasks = [...tasks, ...tasksToCreate].sort((a, b) => 
+      new Date(a.createdAt) - new Date(b.createdAt)
+    );
+    
+    res.json(allTasks);
   } catch (err) {
+    console.error('Get tasks error:', err);
     res.status(500).send('Server error');
   }
 });
@@ -57,6 +101,19 @@ router.patch('/:id', auth, async (req, res) => {
     const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
     if (!task) return res.status(404).json({ msg: 'Task not found' });
     task.done = !task.done;
+    await task.save();
+    res.json(task);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
+// PATCH /api/tasks/:id/daily - toggle isDaily flag
+router.patch('/:id/daily', auth, async (req, res) => {
+  try {
+    const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+    if (!task) return res.status(404).json({ msg: 'Task not found' });
+    task.isDaily = !task.isDaily;
     await task.save();
     res.json(task);
   } catch (err) {

@@ -2,9 +2,9 @@
 
 A comprehensive productivity platform combining daily task management, document organization, asset storage, and analytics to streamline your workflow.
 
-**Current Version:** 1.6.8 (Stable)
+**Current Version:** 1.7.8 (Stable)
 
-**Last Updated:** December 22, 2025
+**Last Updated:** December 24, 2025
 
 ---
 
@@ -47,6 +47,14 @@ The platform features automatic task archiving, rich markdown editing, cloud-bas
 - Bulk delete all tasks for a specific date with confirmation
 - Character limits enforced (500 characters, 50 words per task)
 - Completion tracking with checkbox-only toggle behavior
+
+**Multiple View Modes**
+- List View: Traditional vertical list with timestamps and actions
+- Card View: Grid layout with visual cards for each task
+- Compact View: Dense list view for maximum information density
+- Circle View: Visual circular indicators with completion status
+- View mode preference saved to database and synced across devices
+- Smooth animations between view transitions
 
 **Automatic Archiving**
 - System automatically archives all tasks at midnight (12:00 AM) every day
@@ -133,6 +141,40 @@ The platform features automatic task archiving, rich markdown editing, cloud-bas
 - Automatic midnight archiving system
 - Archive history preservation
 
+### Code Editor (Beta)
+
+**Monaco Editor Integration**
+- VS Code-like editing experience with IntelliSense
+- Syntax highlighting for HTML, CSS, and JavaScript
+- Auto-completion and parameter hints
+- Multi-file editing with tab switching
+- Full keyboard shortcut support
+
+**Dual View Modes**
+- Window View: Complete web development environment
+  - HTML, CSS, and JavaScript file tabs
+  - Live preview of rendered web pages
+  - Theme-aware iframe background
+  - Console output capture for debugging
+- Console View: JavaScript practice environment
+  - Standalone JavaScript file
+  - Direct code execution
+  - Color-coded console output (log/error/warn)
+  - Separate console history from Window view
+
+**Code Execution**
+- Run button for executing code
+- Real-time console output capture
+- Error handling with line numbers
+- Sandboxed iframe for security
+- Theme-aware styling (dark/light mode)
+
+**Data Persistence**
+- All files stored in MongoDB per user
+- Auto-save with 1-second debounce
+- Reset to default files option
+- File content preserved across sessions
+
 ### Settings & Preferences
 
 **User Profile**
@@ -156,9 +198,10 @@ The platform features automatic task archiving, rich markdown editing, cloud-bas
 
 **Navigation**
 - URL-based tab routing with browser history support
-- Dashboard tabs: Tasks, Files, Analytics, Bucket, Settings
+- Dashboard tabs: Tasks, Files, Analytics, Bucket, Editor (Beta - Desktop only), Settings
 - Mobile-optimized sidebar with hamburger menu
 - Persistent active tab state via URL parameters
+- Beta badge for experimental features
 
 **Responsive Design**
 - Mobile-first approach with breakpoint-based layouts
@@ -1358,7 +1401,57 @@ The application uses optimized MongoDB indexes for performance:
 
 ## Version History
 
-### Version 1.6.8 (Current - Stable)
+### Version 1.7.8 (Current - Stable)
+**Release Date:** December 24, 2025
+
+**Major Features:**
+- **Code Editor Tab (Beta):** Full-featured code editor with Monaco Editor integration
+  - VS Code-like editing experience with IntelliSense and syntax highlighting
+  - Two separate views: Window (HTML/CSS/JS) and Console (pure JavaScript)
+  - Window view renders complete web pages with HTML, CSS, and JavaScript
+  - Console view for JavaScript practice with console output capture
+  - Real-time console output with color-coded log/error/warn messages
+  - Separate console outputs for Window and Console views
+  - Theme-aware code execution (dark/light mode support)
+  - Auto-save functionality with 1-second debounce
+  - All files stored in MongoDB per user
+  - Reset to default files with confirmation modal
+  - Desktop-only feature (hidden on mobile devices)
+
+**Task Management Enhancements:**
+- **Multiple View Modes:** Four different task viewing layouts
+  - List View: Traditional list with checkboxes and timestamps
+  - Card View: Grid cards with visual task representation
+  - Compact View: Dense list for quick overview
+  - Circle View: Visual circular progress indicators
+- **View Mode Persistence:** Task view preference stored in database
+  - Synced across devices and sessions
+  - Accessible via settings API endpoint
+
+**UI/UX Improvements:**
+- Animated view transitions with fadeLift motion
+- Improved card view with top-right action buttons
+- Consistent modal design with custom confirmation dialogs
+- Better mobile responsiveness for task views
+- Theme-aware console colors for better readability
+
+**API Updates:**
+- New editor endpoints: `GET /api/editor`, `PUT /api/editor/:id`, `POST /api/editor/reset`
+- Task view mode endpoint: `PUT /api/auth/settings` with task-view-mode support
+- EditorFile model for storing user code files
+- User settings expanded to include task-view-mode preference
+
+**Technical Improvements:**
+- Monaco Editor (@monaco-editor/react v4.7.0) integration
+- Iframe sandboxing for secure code execution
+- PostMessage API for console output capture
+- Debounced auto-save to reduce database writes
+- File content diffing to optimize updates
+- Enhanced DataContext with editor state management
+
+---
+
+### Version 1.6.8 (Previous - Stable)
 **Release Date:** December 22, 2025
 
 **UI/UX Enhancements:**
@@ -1383,7 +1476,7 @@ The application uses optimized MongoDB indexes for performance:
 
 ---
 
-### Version 1.6.7 (Previous - Stable)
+### Version 1.6.7 ( Stable)
 **Release Date:** December 20, 2025
 
 **Major Features:**

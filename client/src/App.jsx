@@ -24,6 +24,7 @@ const App = () => {
       <Route path="/dashboard/files" element={token ? <Dashboard/> : <Navigate to="/login" />} />
       <Route path="/dashboard/analytics" element={token ? <Dashboard/> : <Navigate to="/login" />} />
       <Route path="/dashboard/bucket" element={token ? <Dashboard/> : <Navigate to="/login" />} />
+      <Route path="/dashboard/editor" element={token ? <Dashboard/> : <Navigate to="/login" />} />
       <Route path="/dashboard/settings" element={token ? <Dashboard/> : <Navigate to="/login" />} />
       <Route path="/" element={<Navigate to={token ? '/dashboard/tasks' : '/login'} />} />
       <Route path="*" element={<Navigate to={token ? '/dashboard/tasks' : '/login'} />} />

@@ -62,6 +62,15 @@ export const DataProvider = ({ children }) => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  // View preferences
+  const [taskViewMode, setTaskViewMode] = useState(() => {
+    return user?.settings?.['task-view-mode'] || 'list';
+  });
+
+  // Editor state
+  const [editorFiles, setEditorFiles] = useState([]);
+  const [editorLoading, setEditorLoading] = useState(false);
+
   const hasLoadedInitially = useRef(false);
   const hasLoadedPreferences = useRef(false);
   const folderCache = useRef({});
@@ -117,6 +126,32 @@ export const DataProvider = ({ children }) => {
       setTasks((prev) =>
         prev.map((t) => (t._id === id ? { ...t, done: !t.done } : t))
       );
+    } catch (err) {
+      addToast("error", "Unable to update task");
+    } finally {
+      setUpdatingTasks((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const toggleDaily = async (id) => {
+    if (updatingTasks.has(id)) return;
+
+    setUpdatingTasks((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+
+    try {
+      const { data } = await API.patch(`/api/tasks/${id}/daily`);
+      setTasks((prev) =>
+        prev.map((t) => (t._id === id ? data : t))
+      );
+      addToast("success", data.isDaily ? "Task will repeat daily" : "Daily repeat removed");
     } catch (err) {
       addToast("error", "Unable to update task");
     } finally {
@@ -265,6 +300,63 @@ export const DataProvider = ({ children }) => {
       return false;
     } finally {
       setSavingPassword(false);
+    }
+  };
+
+  const updateTaskViewMode = async (viewMode) => {
+    try {
+      setTaskViewMode(viewMode);
+      await API.put("/api/auth/settings", { 
+        settings: { 'task-view-mode': viewMode } 
+      });
+    } catch (err) {
+      addToast("error", "Unable to save view preference");
+    }
+  };
+
+  // ========================
+  // EDITOR OPERATIONS
+  // ========================
+
+  const fetchEditorFiles = async () => {
+    try {
+      setEditorLoading(true);
+      const { data } = await API.get("/api/editor");
+      setEditorFiles(data);
+      return data;
+    } catch (err) {
+      addToast("error", "Unable to load editor files");
+      return [];
+    } finally {
+      setEditorLoading(false);
+    }
+  };
+
+  const updateEditorFile = async (fileId, content) => {
+    try {
+      const { data } = await API.put(`/api/editor/${fileId}`, { content });
+      setEditorFiles((prev) =>
+        prev.map((file) => (file._id === fileId ? data : file))
+      );
+      return true;
+    } catch (err) {
+      addToast("error", "Unable to save file");
+      return false;
+    }
+  };
+
+  const resetEditorFiles = async () => {
+    try {
+      setEditorLoading(true);
+      const { data } = await API.post("/api/editor/reset");
+      setEditorFiles(data);
+      addToast("success", "Editor files reset to default");
+      return true;
+    } catch (err) {
+      addToast("error", "Unable to reset editor files");
+      return false;
+    } finally {
+      setEditorLoading(false);
     }
   };
 
@@ -850,6 +942,13 @@ const deleteFromBucket = async (id) => {
     }
   }, [currentFolder]);
 
+  // Update view mode when user settings change
+  useEffect(() => {
+    if (user?.settings?.['task-view-mode']) {
+      setTaskViewMode(user.settings['task-view-mode']);
+    }
+  }, [user]);
+
   // Re-sort files when sort settings change
   useEffect(() => {
     if (files.length > 0) {
@@ -860,6 +959,17 @@ const deleteFromBucket = async (id) => {
   const value = {
     // Global
     globalLoading,
+
+    // View Preferences
+    taskViewMode,
+    updateTaskViewMode,
+
+    // Editor
+    editorFiles,
+    editorLoading,
+    fetchEditorFiles,
+    updateEditorFile,
+    resetEditorFiles,
 
     // Tasks
     tasks,
@@ -872,6 +982,7 @@ const deleteFromBucket = async (id) => {
     fetchTasks,
     addTask,
     toggleTask,
+    toggleDaily,
     updateTask,
     deleteTask,
     deleteAllTasks,

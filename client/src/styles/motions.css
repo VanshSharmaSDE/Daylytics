@@ -53,7 +53,9 @@ body {
 .analytics-card,
 .tasks-tab,
 .analytics-tab,
-.files-tab {
+.files-tab,
+.circle-view-item,
+.compact-view-item {
   animation: fadeLift var(--motion-duration-base) var(--motion-ease);
   animation-fill-mode: both;
 }

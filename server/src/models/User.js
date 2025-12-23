@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, default: '', maxlength: 30 },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  settings: { type: Object, default: { "daylytics-theme": "light" } },
+  settings: { type: Object, default: { "daylytics-theme": "light", "task-view-mode": "list" } },
   storageUsed: { type: Number, default: 0 }, // in bytes
   storageLimit: { type: Number, default: 100 * 1024 * 1024 }, // 100MB in bytes
   pendingInlineImages: [{

@@ -5,6 +5,7 @@ const taskSchema = new mongoose.Schema({
   date: { type: String, required: true }, // store ISO date string YYYY-MM-DD
   title: { type: String, required: true, maxlength: 500 },
   done: { type: Boolean, default: false },
+  isDaily: { type: Boolean, default: false },
   attachment: {
     fileId: { type: String },
     url: { type: String },
