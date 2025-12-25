@@ -6,7 +6,7 @@ const navItems = [
   { id: "analytics", label: "Analytics", icon: "ri-line-chart-line" },
   { id: "files", label: "Files", icon: "ri-file-text-line" },
   { id: "bucket", label: "Bucket", icon: "ri-archive-line" },
-  { id: "editor", label: "Editor", icon: "ri-code-box-line", beta: true },
+  // { id: "editor", label: "Editor", icon: "ri-code-box-line", beta: true },
 ];
 
 const Navbar = ({

@@ -11,7 +11,7 @@ const fileRoutes = require('./routes/files');
 const folderRoutes = require('./routes/folders');
 const bucketRoutes = require('./routes/bucket');
 const storageRoutes = require('./routes/storage');
-const editorRoutes = require('./routes/editor');
+// const editorRoutes = require('./routes/editor');
 const { startAutoArchiveScheduler } = require('./services/autoArchive');
 const mongoose = require('mongoose');
 
@@ -64,7 +64,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/bucket', bucketRoutes);
 app.use('/api/storage', storageRoutes);
-app.use('/api/editor', editorRoutes);
+// app.use('/api/editor', editorRoutes);
 
 // Simple health route
 app.get('/api/health', (req, res) => res.json({ status: 'ok', now: new Date().toISOString() }));

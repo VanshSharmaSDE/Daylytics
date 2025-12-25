@@ -9,7 +9,7 @@ import FilesTab from "./FilesTab";
 import TasksTab from "./TasksTab";
 import AnalyticsTab from "./AnalyticsTab";
 import BucketTab from "./BucketTab";
-import EditorTab from "./EditorTab";
+// import EditorTab from "./EditorTab";
 import Settings from "./Settings";
 
 const Dashboard = () => {
@@ -60,7 +60,7 @@ const Dashboard = () => {
           <BucketTab />
         </div>
 
-        {activeTab === "editor" && <EditorTab />}
+        {/* {activeTab === "editor" && <EditorTab />} */}
 
         {activeTab === "settings" && <Settings />}
       </div>
@@ -118,7 +118,7 @@ const Dashboard = () => {
           pointerEvents: "none",
         }}
       >
-        v1.7.8
+        v1.7.9
       </div>
 
       <div

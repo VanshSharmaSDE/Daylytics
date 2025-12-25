@@ -2,9 +2,9 @@
 
 A comprehensive productivity platform combining daily task management, document organization, asset storage, and analytics to streamline your workflow.
 
-**Current Version:** 1.7.8 (Stable)
+**Current Version:** 1.7.9 (Stable)
 
-**Last Updated:** December 24, 2025
+**Last Updated:** December 25, 2025
 
 ---
 
@@ -142,6 +142,8 @@ The platform features automatic task archiving, rich markdown editing, cloud-bas
 - Archive history preservation
 
 ### Code Editor (Beta)
+
+> **Note:** Due to performance issues and inconsistency, the Code Editor feature is currently disabled in version 1.7.9. This feature will be re-enabled with improvements in version 1.8.
 
 **Monaco Editor Integration**
 - VS Code-like editing experience with IntelliSense
@@ -1401,7 +1403,23 @@ The application uses optimized MongoDB indexes for performance:
 
 ## Version History
 
-### Version 1.7.8 (Current - Stable)
+### Version 1.7.9 (Current - Stable)
+**Release Date:** December 25, 2025
+
+**Updates:**
+- **Code Editor Temporarily Disabled:** The Code Editor feature has been temporarily disabled due to performance issues and inconsistency
+  - Feature will be re-enabled with improvements in version 1.8
+  - All code and functionality preserved for future release
+  - UI elements and navigation updated to reflect temporary removal
+
+**Technical Changes:**
+- Commented out editor routes in client and server
+- Removed Editor tab from navigation menu
+- Preserved EditorTab component and backend routes for future use
+
+---
+
+### Version 1.7.8 (Previous - Stable)
 **Release Date:** December 24, 2025
 
 **Major Features:**
