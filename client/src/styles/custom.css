@@ -1,0 +1,152 @@
+.w-full{
+    width: 100%;
+}
+
+.h-full{
+    height: 100%;
+}
+
+/* Markdown Preview Styling */
+.markdown-preview img {
+    width: 45%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.markdown-preview img:hover {
+    opacity: 0.8;
+}
+
+.markdown-preview video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.markdown-preview p {
+    margin-bottom: 1rem;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+
+/* Visual Editor + Preview shared code styling */
+.visual-editor,
+.visual-preview,
+.markdown-preview {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.visual-editor pre,
+.visual-preview pre,
+.markdown-preview pre {
+    background: linear-gradient(120deg, rgba(33, 37, 41, 0.08), rgba(13, 110, 253, 0.08));
+    color: var(--text);
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    border: 1px solid rgba(13, 110, 253, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.visual-editor pre::before,
+.visual-preview pre::before,
+.markdown-preview pre::before {
+    content: "</>";
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    font-size: 0.75rem;
+    color: rgba(13, 110, 253, 0.7);
+    font-weight: 600;
+}
+
+.visual-editor code:not(pre code),
+.visual-preview code:not(pre code),
+.markdown-preview code:not(pre code) {
+    background-color: rgba(13, 110, 253, 0.12);
+    color: var(--text);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    border: 1px solid rgba(13, 110, 253, 0.25);
+}
+
+.markdown-preview blockquote,
+.visual-preview blockquote {
+    border-left: 4px solid var(--border);
+    padding-left: 16px;
+    margin-left: 0;
+    color: var(--text-muted);
+}
+
+.editor-toolbar {
+    position: sticky;
+    top: -24px;
+    background: var(--panel-muted);
+    z-index: 5;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+.editor-mode-toggle .btn {
+    min-width: 90px;
+}
+
+.markdown-preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+}
+
+.markdown-preview table th,
+.markdown-preview table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.markdown-preview table th {
+    background-color: var(--panel-muted);
+    font-weight: 600;
+}
+
+.content-delete-overlay {
+    position: fixed;
+    z-index: 1100;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #dc3545;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.35);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.content-delete-overlay:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(220, 53, 69, 0.45);
+}

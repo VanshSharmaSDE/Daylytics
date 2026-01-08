@@ -1,0 +1,111 @@
+/* Motion system adds subtle GitHub-like polish throughout the app */
+:root {
+  --motion-duration-short: 0.18s;
+  --motion-duration-base: 0.32s;
+  --motion-duration-long: 0.45s;
+  --motion-ease: cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+
+@keyframes bodyFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeLift {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(9, 105, 218, 0.25); }
+  70% { box-shadow: 0 0 0 10px rgba(9, 105, 218, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(9, 105, 218, 0); }
+}
+
+body {
+  animation: bodyFade var(--motion-duration-long) ease;
+}
+
+.app-navbar,
+.panel,
+.card,
+.modal-panel,
+.toast-item,
+.overlay-content,
+.list-group-item,
+.analytics-card,
+.tasks-tab,
+.analytics-tab,
+.files-tab,
+.circle-view-item,
+.compact-view-item {
+  animation: fadeLift var(--motion-duration-base) var(--motion-ease);
+  animation-fill-mode: both;
+}
+
+.github-badge {
+  animation: fadeInScale var(--motion-duration-base) var(--motion-ease);
+  animation-fill-mode: both;
+}
+
+.btn,
+.avatar-btn,
+.hamburger {
+  transition: transform var(--motion-duration-short) ease,
+    box-shadow var(--motion-duration-short) ease,
+    background var(--motion-duration-short) ease,
+    border-color var(--motion-duration-short) ease;
+}
+
+.btn:hover,
+.avatar-btn:hover,
+.hamburger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+}
+
+.btn:active,
+.avatar-btn:active,
+.hamburger:active {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.25);
+}
+
+.form-control,
+textarea,
+input[type="date"] {
+  transition: box-shadow var(--motion-duration-short) ease,
+    border-color var(--motion-duration-short) ease,
+    background var(--motion-duration-short) ease;
+}
+
+.form-control:focus,
+textarea:focus,
+input[type="date"]:focus {
+  animation: pulseGlow 1.2s ease;
+}
+
+.toast-item {
+  animation-delay: 0.05s;
+}
+
+.overlay-loader {
+  animation: fadeInScale var(--motion-duration-long) var(--motion-ease);
+}
