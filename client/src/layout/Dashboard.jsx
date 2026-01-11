@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
-import Navbar from "../components/Navbar";
+import Navbar from "./Navbar";
 import ProfileModal from "../components/ProfileModal";
 import Modal from "../components/Modal";
-import FilesTab from "./FilesTab";
-import TasksTab from "./TasksTab";
-import AnalyticsTab from "./AnalyticsTab";
-import BucketTab from "./BucketTab";
-// import EditorTab from "./EditorTab";
-import Settings from "./Settings";
+import FilesTab from "../pages/FilesTab";
+import TasksTab from "../pages/TasksTab";
+import AnalyticsTab from "../pages/AnalyticsTab";
+import BucketTab from "../pages/BucketTab";
+// import EditorTab from "../pages/EditorTab";
+import Settings from "../pages/Settings";
 
 const Dashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -22,7 +22,7 @@ const Dashboard = () => {
   const location = useLocation();
 
   // Determine active tab from URL
-  const activeTab = location.pathname.split('/')[2] || 'tasks';
+  const activeTab = location.pathname.split("/")[2] || "tasks";
 
   // Handle tab changes by navigating to new URL
   const handleTabChange = (tab) => {
@@ -41,7 +41,7 @@ const Dashboard = () => {
         <Navbar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onProfile={() => handleTabChange('settings')}
+          onProfile={() => handleTabChange("settings")}
           onLogoutRequest={() => setShowLogoutModal(true)}
           user={user}
           mobileMenuOpen={mobileMenuOpen}

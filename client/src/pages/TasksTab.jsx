@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "../components/Modal";
+import InfoTooltip from "../components/InfoTooltip";
 import { useData } from "../context/DataContext";
 
 const cx = (...classes) => classes.filter(Boolean).join(" ");
@@ -446,7 +447,17 @@ const TasksTab = ({ user }) => {
       <div className="tasks-tab">
         {/* Header - Mobile */}
         <div className="d-flex d-md-none justify-content-between align-items-center mb-3">
-          <h2 className="mb-0">Tasks</h2>
+          <div className="d-flex align-items-center">
+            <h2 className="mb-0">Tasks</h2>
+            <InfoTooltip content={<div>
+              <strong>Task limits:</strong>
+              <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                <li>Title: up to 500 characters (max 50 words)</li>
+                <li>Optional image attachment per task (max 10 MB)</li>
+                <li>Completion toggles via checkbox only</li>
+              </ul>
+            </div>} className="ms-2" />
+          </div>
           <div className="d-flex gap-2">
 
             {tasks.length > 0 && (
@@ -497,7 +508,17 @@ const TasksTab = ({ user }) => {
 
         {/* Header - Desktop */}
         <div className="d-none d-md-flex justify-content-between align-items-center mb-4">
-          <h2 className="mb-0">Tasks</h2>
+          <div className="d-flex align-items-center">
+            <h2 className="mb-0">Tasks</h2>
+            <InfoTooltip content={<div>
+              <strong>Task limits:</strong>
+              <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                <li>Title: up to 500 characters (max 50 words)</li>
+                <li>Optional image attachment per task (max 10 MB)</li>
+                <li>Completion toggles via checkbox only</li>
+              </ul>
+            </div>} className="ms-2" />
+          </div>
           
           <div className="d-flex gap-2 align-items-center">
 

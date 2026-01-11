@@ -1,12 +1,12 @@
 import React from "react";
 import { useTheme } from "../context/ThemeContext";
 
+
 const navItems = [
   { id: "tasks", label: "Tasks", icon: "ri-list-check-2" },
   { id: "analytics", label: "Analytics", icon: "ri-line-chart-line" },
   { id: "files", label: "Files", icon: "ri-file-text-line" },
   { id: "bucket", label: "Bucket", icon: "ri-archive-line" },
-  // { id: "editor", label: "Editor", icon: "ri-code-box-line", beta: true },
 ];
 
 const Navbar = ({
@@ -93,9 +93,12 @@ const Navbar = ({
           >
             <i className="ri-settings-3-line" aria-hidden="true"></i>
           </button>
-          <button type="button" className="avatar-btn d-none d-md-inline-flex">
-            {initials}
-          </button>
+          <div className="avatar-wrap d-none d-md-inline-flex" style={{ position: 'relative' }}>
+            <button type="button" className="avatar-btn" aria-label={`User: ${user?.name || user?.email || 'User'}`}>
+              {initials}
+            </button>
+            <span className="avatar-tooltip" role="tooltip">{user?.name || user?.email || 'User'}</span>
+          </div>
           <button
             type="button"
             className={`hamburger d-md-none ${mobileMenuOpen ? "open" : ""}`}
@@ -119,10 +122,10 @@ const Navbar = ({
           <div className="mobile-menu open">
             <div className="mobile-menu-header">
               <div className="d-flex align-items-center gap-2">
-                <button type="button" className="avatar-btn">
+                <button type="button" className="avatar-btn" title={user?.name || user?.email || 'User'} aria-label={`User: ${user?.name || user?.email || 'User'}`}>
                   {initials}
                 </button>
-                <span className="fw-semibold">{user?.name || user?.email || "Menu"}</span>
+                <span className="fw-semibold" title={user?.name || user?.email || 'Menu'}>{user?.name || user?.email || "Menu"}</span>
               </div>
               <div className="d-flex align-items-center gap-2">
                 <button

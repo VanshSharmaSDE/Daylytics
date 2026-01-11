@@ -67,7 +67,8 @@ body {
 
 .btn,
 .avatar-btn,
-.hamburger {
+.hamburger,
+.theme-toggle-btn {
   transition: transform var(--motion-duration-short) ease,
     box-shadow var(--motion-duration-short) ease,
     background var(--motion-duration-short) ease,
@@ -76,14 +77,16 @@ body {
 
 .btn:hover,
 .avatar-btn:hover,
-.hamburger:hover {
+.hamburger:hover,
+.theme-toggle-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
 }
 
 .btn:active,
 .avatar-btn:active,
-.hamburger:active {
+.hamburger:active,
+.theme-toggle-btn:active {
   transform: translateY(0);
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.25);
 }

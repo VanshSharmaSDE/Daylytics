@@ -3,6 +3,7 @@ import { useData } from '../context/DataContext';
 import { marked } from 'marked';
 import Modal from '../components/Modal';
 import Loader from '../components/Loader';
+import InfoTooltip from '../components/InfoTooltip';
 import API from '../api';
 import { useToast } from '../components/ToastProvider';
 
@@ -1047,7 +1048,18 @@ const FilesTab = () => {
       <div className="files-tab">
       {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0">My Files</h2>
+        <div className="d-flex align-items-center">
+          <h2 className="mb-0">My Files</h2>
+          <InfoTooltip content={<div>
+            <strong>Files & folders:</strong>
+            <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+              <li>Files are Markdown documents with inline image support</li>
+              <li>Folder deletion is blocked if it contains files or subfolders</li>
+              <li>Title limit: 200 characters. Content limit: 50,000 characters.</li>
+              <li>Uploads count towards per-user storage quota (default 100 MB)</li>
+            </ul>
+          </div>} className="ms-2" />
+        </div>
         <div className="d-flex gap-2">
           <button 
             className="btn btn-outline-primary"

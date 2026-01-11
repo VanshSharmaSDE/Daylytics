@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useData } from "../context/DataContext";
+import InfoTooltip from "../components/InfoTooltip";
 
 const AnalyticsTab = () => {
   const { archives, fetchArchives } = useData();
@@ -41,8 +42,17 @@ const AnalyticsTab = () => {
   return (
     <div className="analytics-tab">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0">Analytics</h2>
-        <div className="d-flex gap-2">
+        <div className="d-flex align-items-center">
+          <h2 className="mb-0">Analytics</h2>
+          <InfoTooltip content={<div>
+            <strong>Archiving:</strong>
+            <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+              <li>Automatic daily archiving runs at midnight</li>
+              <li>Archives are accessible via management tools for audit and export</li>
+            </ul>
+          </div>} className="ms-2" />
+        </div>
+        <div className="d-flex gap-2"> 
           <select 
             className="form-select" 
             style={{ width: 'auto' }}

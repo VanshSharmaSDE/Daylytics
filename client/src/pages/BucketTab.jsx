@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useToast } from "../components/ToastProvider";
 import { useData } from "../context/DataContext";
 import Modal from "../components/Modal";
+import InfoTooltip from "../components/InfoTooltip";
 import Loader from "../components/Loader";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -199,7 +200,17 @@ const BucketTab = () => {
           
 
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="mb-0">Bucket</h2>
+            <div className="d-flex align-items-center">
+              <h2 className="mb-0">Bucket</h2>
+              <InfoTooltip content={<div>
+                <strong>Bucket limits:</strong>
+                <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
+                  <li>Per-file upload limit: 10 MB</li>
+                  <li>Per-user storage quota applies (default 100 MB)</li>
+                  <li>Files are stored via Cloudinary; deletions reduce used storage</li>
+                </ul>
+              </div>} className="ms-2" />
+            </div>
             <div>
               <label
                 className="btn btn-primary mb-0"

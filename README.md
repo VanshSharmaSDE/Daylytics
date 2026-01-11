@@ -157,11 +157,7 @@ Storage
 
 Archive
 - GET `/api/archive` — list archives
-- POST `/api/archive/rollover?date=YYYY-MM-DD` — archive date (manual)
-
-Notes.
-- The legacy code editor endpoints are deprecated and respond with `410 Gone`.
-- Some endpoints (for example, the archive rollover endpoint) implement validation to prevent duplicate archives.
+- POST `/api/archive/rollover?date=YYYY-MM-DD` — archive date (automatic at midnight)
 
 ---
 
@@ -227,16 +223,6 @@ On the server, `npm run seed` will create a test user and sample tasks/files for
 | bcryptjs | 2.4.3 | Password hashing |
 | Cloudinary SDK | See `server/package.json` | Upload and asset management |
 | Development tooling | nodemon | Development server reload |
-
-Notes.
-- The versions above reflect the project's current dependencies; execute `npm outdated` in `client/` and `server/` to view available updates.
-- When upgrading core dependencies (for example, Node, React, or Mongoose), ensure tests and migration scripts are executed to avoid regressions.
-| Backend | Cloudinary SDK | See `server/package.json` | Upload/asset management |
-| Backend | Dev tooling | nodemon | Development server reload |
-
-**Notes**
-- The versions above reflect what the project currently uses; run `npm outdated` in `client/` and `server/` to see available updates.
-- When upgrading core dependencies (Node, React, Mongoose), test migrations and run integration tests to avoid breaking changes.
 
 **Notes**
 - The versions above reflect what the project currently uses; run `npm outdated` in `client/` and `server/` to see available updates.
