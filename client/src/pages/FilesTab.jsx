@@ -206,7 +206,7 @@ const FilesTab = () => {
   };
 
   const execEditorCommand = (command, value, ref, updater) => {
-    if (!ref.current) return;
+    if (!ref.current || typeof window === 'undefined') return;
     ref.current.focus();
 
     if (command === 'createLink') {
@@ -216,6 +216,30 @@ const FilesTab = () => {
 
     if (command === 'formatBlock') {
       document.execCommand(command, false, value);
+      
+      // After creating a heading or other block, ensure cursor doesn't get trapped
+      if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(value)) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          const currentNode = range.commonAncestorContainer;
+          const headingElement = currentNode.nodeType === Node.ELEMENT_NODE 
+            ? currentNode 
+            : currentNode.parentElement;
+          
+          // Check if we're at the end of the heading
+          if (headingElement && /^H[1-6]$/i.test(headingElement.tagName)) {
+            const atEnd = range.endOffset === (headingElement.textContent?.length || 0);
+            
+            // If heading doesn't have a next sibling, add a paragraph after it
+            if (atEnd && !headingElement.nextSibling) {
+              const para = document.createElement('p');
+              para.innerHTML = '<br>';
+              headingElement.parentNode.insertBefore(para, headingElement.nextSibling);
+            }
+          }
+        }
+      }
     } else {
       document.execCommand(command, false, value);
     }
@@ -238,8 +262,46 @@ const FilesTab = () => {
     editorRef.current.focus();
     const selection = window.getSelection();
     const text = selection?.toString() || 'const example = true;';
-    const html = `<pre><code>${escapeHTML(text)}</code></pre><p></p>`;
+    const html = `<pre><code>${escapeHTML(text)}</code></pre><p><br></p>`;
     document.execCommand('insertHTML', false, html);
+    handleVisualInput(editorRef, updater);
+  };
+
+  const applyFontSize = (editorRef, updater, size) => {
+    if (!editorRef?.current || typeof window === 'undefined') return;
+    editorRef.current.focus();
+    const selection = window.getSelection();
+    
+    if (!selection || selection.rangeCount === 0) return;
+    
+    const selectedText = selection.toString();
+    if (!selectedText) {
+      // If no text selected, just apply font size command
+      document.execCommand('fontSize', false, '7');
+      // Then override with actual size
+      const fontElements = editorRef.current.querySelectorAll('font[size="7"]');
+      fontElements.forEach(el => {
+        const span = document.createElement('span');
+        span.style.fontSize = size;
+        span.innerHTML = el.innerHTML;
+        el.parentNode.replaceChild(span, el);
+      });
+    } else {
+      // Wrap selected text in span with font size
+      const range = selection.getRangeAt(0);
+      const span = document.createElement('span');
+      span.style.fontSize = size;
+      span.textContent = selectedText;
+      range.deleteContents();
+      range.insertNode(span);
+      
+      // Move cursor after the span
+      range.setStartAfter(span);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+    
     handleVisualInput(editorRef, updater);
   };
 
@@ -281,7 +343,7 @@ const FilesTab = () => {
       const cells = Array.from({ length: safeCols }, (_, colIndex) => `<td>Cell ${rowIndex + 1}-${colIndex + 1}</td>`).join('');
       return `<tr>${cells}</tr>`;
     }).join('');
-    return `<table class="table table-bordered">${thead}<tbody>${tbodyRows}</tbody></table><p></p>`;
+    return `<table class="table table-bordered">${thead}<tbody>${tbodyRows}</tbody></table><p><br></p>`;
   };
 
   const buildTableMarkdown = (rows = 3, cols = 2, includeHeader = true) => {
@@ -389,6 +451,7 @@ const FilesTab = () => {
     const safePadding = Number.isFinite(paddingValue) ? Math.max(0, paddingValue) : 0;
     wrapper.style.margin = `${safeMargin}px`;
     wrapper.style.padding = `${safePadding}px`;
+    wrapper.style.display = 'block';
     wrapper.setAttribute('data-spacing-block', 'true');
 
     if (hasContent) {
@@ -401,7 +464,20 @@ const FilesTab = () => {
 
     range.deleteContents();
     range.insertNode(wrapper);
-    range.setStartAfter(wrapper);
+    
+    // Create an empty paragraph after the wrapper to prevent nesting
+    const nextParagraph = document.createElement('p');
+    nextParagraph.innerHTML = '<br>'; // Ensures the paragraph is visible and editable
+    
+    // Insert the paragraph after the wrapper
+    if (wrapper.nextSibling) {
+      wrapper.parentNode.insertBefore(nextParagraph, wrapper.nextSibling);
+    } else {
+      wrapper.parentNode.appendChild(nextParagraph);
+    }
+    
+    // Move cursor into the new paragraph
+    range.setStart(nextParagraph, 0);
     range.collapse(true);
     selection.removeAllRanges();
     selection.addRange(range);
@@ -700,6 +776,34 @@ const FilesTab = () => {
         <button type="button" className="btn btn-outline-secondary" title="Underline" onClick={() => execEditorCommand('underline', null, editorRef, onChange)}>
           <i className="ri-underline"></i>
         </button>
+      </div>
+
+      <div className="btn-group btn-group-sm">
+        <select 
+          className="form-select form-select-sm" 
+          style={{ width: 'auto', minWidth: '90px' }}
+          title="Font Size"
+          onChange={(e) => {
+            if (e.target.value) {
+              applyFontSize(editorRef, onChange, e.target.value);
+              e.target.value = ''; // Reset to placeholder
+            }
+          }}
+          defaultValue=""
+        >
+          <option value="" disabled>Font Size</option>
+          <option value="10px">10px</option>
+          <option value="12px">12px</option>
+          <option value="14px">14px</option>
+          <option value="16px">16px</option>
+          <option value="18px">18px</option>
+          <option value="20px">20px</option>
+          <option value="24px">24px</option>
+          <option value="28px">28px</option>
+          <option value="32px">32px</option>
+          <option value="36px">36px</option>
+          <option value="48px">48px</option>
+        </select>
       </div>
 
       <div className="btn-group btn-group-sm">
