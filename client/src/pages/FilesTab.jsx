@@ -195,6 +195,15 @@ const FilesTab = () => {
   };
 
   const openSpacingModal = ({ context, textareaRef }) => {
+    const currentContent = context === 'edit' ? editingFile?.content || '' : newFile.content || '';
+    
+    if (hasSpacingBlock(currentContent)) {
+      const values = extractSpacingValues(currentContent);
+      setSpacingValues(values);
+    } else {
+      setSpacingValues({ margin: 16, padding: 16 });
+    }
+    
     setSpacingModalState({ open: true, context, textareaRef });
   };
 
@@ -203,11 +212,51 @@ const FilesTab = () => {
     setSpacingValues({ margin: 16, padding: 16 });
   };
 
-  const buildSpacingMarkdown = (marginValue, paddingValue) => {
+  const buildSpacingMarkdown = (marginValue, paddingValue, wrapExisting = false, existingContent = '') => {
     const safeMargin = Number.isFinite(marginValue) ? Math.max(0, marginValue) : 0;
     const safePadding = Number.isFinite(paddingValue) ? Math.max(0, paddingValue) : 0;
     const styleParts = [`margin: ${safeMargin}px`, `padding: ${safePadding}px`];
-    return `\n<div data-spacing-block="true" style="${styleParts.join('; ')}">\n\n</div>\n`;
+    
+    if (wrapExisting && existingContent) {
+      return `<div data-spacing-block="true" style="${styleParts.join('; ')}">
+${existingContent}
+</div>`;
+    }
+    
+    return `<div data-spacing-block="true" style="${styleParts.join('; ')}">
+
+<!-- Add your content here -->
+
+</div>`;
+  };
+
+  const hasSpacingBlock = (content) => {
+    return content.includes('data-spacing-block="true"');
+  };
+
+  const extractSpacingValues = (content) => {
+    const match = content.match(/data-spacing-block="true"\s+style="([^"]+)"/);
+    if (!match) return { margin: 16, padding: 16 };
+    
+    const style = match[1];
+    const marginMatch = style.match(/margin:\s*(\d+)px/);
+    const paddingMatch = style.match(/padding:\s*(\d+)px/);
+    
+    return {
+      margin: marginMatch ? parseInt(marginMatch[1], 10) : 16,
+      padding: paddingMatch ? parseInt(paddingMatch[1], 10) : 16
+    };
+  };
+
+  const updateSpacingBlock = (content, newMargin, newPadding) => {
+    const spacingRegex = /<div\s+data-spacing-block="true"\s+style="[^"]+">([\s\S]*?)<\/div>/;
+    const match = content.match(spacingRegex);
+    
+    if (!match) return content;
+    
+    const innerContent = match[1];
+    const newSpacing = buildSpacingMarkdown(newMargin, newPadding, true, innerContent);
+    return content.replace(spacingRegex, newSpacing);
   };
 
   const applySpacingFromModal = () => {
@@ -217,8 +266,23 @@ const FilesTab = () => {
     const safePadding = Number.isFinite(padding) ? padding : 0;
 
     if (textareaRef) {
-      const snippet = buildSpacingMarkdown(safeMargin, safePadding);
-      insertMarkdownSnippet(textareaRef, snippet, context === 'edit');
+      const currentContent = context === 'edit' ? editingFile?.content || '' : newFile.content || '';
+      
+      if (hasSpacingBlock(currentContent)) {
+        // Update existing spacing block
+        const updatedContent = updateSpacingBlock(currentContent, safeMargin, safePadding);
+        if (context === 'edit') {
+          setEditingFile((prev) => (prev ? { ...prev, content: updatedContent } : prev));
+        } else {
+          setNewFile((prev) => ({ ...prev, content: updatedContent }));
+        }
+        addToast('success', 'Spacing updated');
+      } else {
+        // Insert new spacing block
+        const snippet = buildSpacingMarkdown(safeMargin, safePadding);
+        insertMarkdownSnippet(textareaRef, snippet, context === 'edit');
+        addToast('success', 'Spacing added');
+      }
     }
 
     closeSpacingModal();
@@ -280,15 +344,15 @@ const FilesTab = () => {
     }
   };
 
-  const MarkdownHelperActions = ({ onTable, onImage, onSpacing, imageUploading }) => (
+  const MarkdownHelperActions = ({ onTable, onImage, onSpacing, imageUploading, hasSpacing }) => (
     <div className="d-flex flex-wrap gap-2 mb-2">
-      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onTable}>
+      <button type="button" className="btn btn-sm btn-outline-primary" onClick={onTable}>
         <i className="ri-table-line me-1"></i>
         Insert table
       </button>
-      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={onSpacing}>
+      <button type="button" className="btn btn-sm btn-outline-primary" onClick={onSpacing}>
         <i className="ri-focus-2-line me-1"></i>
-        Add spacing
+        {hasSpacing ? 'Update spacing' : 'Add spacing'}
       </button>
       <button
         type="button"
@@ -993,6 +1057,7 @@ const FilesTab = () => {
                     onSpacing={() => openSpacingModal({ context: 'create', textareaRef: createMarkdownTextareaRef })}
                     onImage={() => triggerInlineImagePicker('create')}
                     imageUploading={inlineImageUploading && inlineImageContext === 'create'}
+                    hasSpacing={hasSpacingBlock(newFile.content || '')}
                   />
                   <textarea
                     ref={createMarkdownTextareaRef}
@@ -1099,6 +1164,7 @@ const FilesTab = () => {
                         onSpacing={() => openSpacingModal({ context: 'edit', textareaRef: editMarkdownTextareaRef })}
                         onImage={() => triggerInlineImagePicker('edit')}
                         imageUploading={inlineImageUploading && inlineImageContext === 'edit'}
+                        hasSpacing={hasSpacingBlock(editingFile?.content || '')}
                       />
                       <textarea
                         ref={editMarkdownTextareaRef}
