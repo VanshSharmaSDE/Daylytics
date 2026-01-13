@@ -7,8 +7,6 @@ import InfoTooltip from '../components/InfoTooltip';
 import API from '../api';
 import { useToast } from '../components/ToastProvider';
 
-const DELETE_OVERLAY_DEFAULT = { visible: false, top: 0, left: 0, target: null, editorRef: null, updater: null };
-
 if (marked && typeof marked.setOptions === 'function') {
   marked.setOptions({
     gfm: true,
@@ -60,31 +58,17 @@ const FilesTab = () => {
   const [newFolderName, setNewFolderName] = useState('');
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
-  const [createEditorMode, setCreateEditorMode] = useState('visual');
-  const [editEditorMode, setEditEditorMode] = useState('visual');
-  const [editingHtmlInitialized, setEditingHtmlInitialized] = useState(false);
-  const [createHtmlInitialized, setCreateHtmlInitialized] = useState(false);
   const [inlineImageUploading, setInlineImageUploading] = useState(false);
   const [inlineImageContext, setInlineImageContext] = useState(null);
-  const [linkModalState, setLinkModalState] = useState({ open: false, editorRef: null, updater: null });
-  const [linkUrl, setLinkUrl] = useState('');
-  const [tableModalState, setTableModalState] = useState({ open: false, mode: 'visual', context: 'create', editorRef: null, textareaRef: null, updater: null });
+  const [tableModalState, setTableModalState] = useState({ open: false, context: 'create', textareaRef: null });
   const [tableConfig, setTableConfig] = useState({ rows: 3, cols: 2, includeHeader: true });
-  const [spacingModalState, setSpacingModalState] = useState({ open: false, mode: 'visual', context: 'create', editorRef: null, textareaRef: null, updater: null });
+  const [spacingModalState, setSpacingModalState] = useState({ open: false, context: 'create', textareaRef: null });
   const [spacingValues, setSpacingValues] = useState({ margin: 16, padding: 16 });
-  const [deleteOverlay, setDeleteOverlay] = useState(DELETE_OVERLAY_DEFAULT);
 
-  const createEditorRef = useRef(null);
-  const editEditorRef = useRef(null);
   const createImageInputRef = useRef(null);
   const editImageInputRef = useRef(null);
   const createMarkdownTextareaRef = useRef(null);
   const editMarkdownTextareaRef = useRef(null);
-  const linkSelectionRef = useRef(null);
-  const tableSelectionRef = useRef(null);
-  const spacingSelectionRef = useRef(null);
-  const overlayHoverRef = useRef(false);
-  const overlayHideTimeoutRef = useRef(null);
 
   const formatFileSize = (bytes) => {
     if (!bytes) return '0 Bytes';
@@ -103,23 +87,6 @@ const FilesTab = () => {
     return temp.innerHTML;
   };
 
-  const getPlainTextLength = (html = '') => {
-    if (typeof window === 'undefined') return html?.length || 0;
-    const temp = document.createElement('div');
-    temp.innerHTML = html || '';
-    return temp.textContent?.length || 0;
-  };
-
-  const isHTMLContent = (content = '') => /<\/?[a-z][\s\S]*>/i.test(content.trim());
-
-  const escapeHTML = (value = '') =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
   const renderMarkdown = (value = '') => {
     if (!value) return '';
     if (typeof marked === 'function') {
@@ -136,24 +103,6 @@ const FilesTab = () => {
     return value;
   };
 
-  const DELETABLE_SELECTORS = 'table, pre, blockquote, ul, ol, img, div[data-spacing-block]';
-
-  const applyAnchorAttributes = (editorRef) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    const selection = window.getSelection();
-    if (!selection) return;
-    let node = selection.focusNode;
-    if (!node) return;
-    if (typeof Node !== 'undefined' && node.nodeType === Node.TEXT_NODE) {
-      node = node.parentElement;
-    }
-    const anchor = node?.closest('a');
-    if (anchor) {
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-    }
-  };
-
   const getRenderableContent = (content = '') => {
     if (!content?.trim()) {
       return '<p class="text-muted">No content added yet.</p>';
@@ -162,17 +111,7 @@ const FilesTab = () => {
     return sanitizeHTML(html);
   };
 
-  const getEditorReadyHTML = (content = '') => {
-    if (!content?.trim()) return '';
-    const html = isHTMLContent(content) ? content : renderMarkdown(content);
-    return sanitizeHTML(html);
-  };
-
-  const getContentLength = (content = '', mode = 'visual') => (
-    mode === 'visual' ? getPlainTextLength(content || '') : (content || '').length
-  );
-
-  const determineModeForContent = (content = '') => (isHTMLContent(content) ? 'visual' : 'markdown');
+  const getContentLength = (content = '') => (content || '').length;
 
   const updateNewFileContent = (value) => {
     setNewFile((prev) => ({ ...prev, content: value }));
@@ -184,125 +123,11 @@ const FilesTab = () => {
 
   const resetEditingState = () => {
     setEditingFile(null);
-    setEditingHtmlInitialized(false);
-    setEditEditorMode('visual');
-    if (editEditorRef.current) {
-      editEditorRef.current.innerHTML = '';
-    }
   };
 
   const beginEditingFile = (file) => {
     if (!file) return;
-    const mode = determineModeForContent(file.content || '');
-    setEditEditorMode(mode);
-    setEditingHtmlInitialized(false);
     setEditingFile({ ...file });
-  };
-
-  const handleVisualInput = (ref, updater) => {
-    if (!ref.current) return;
-    const sanitized = sanitizeHTML(ref.current.innerHTML);
-    updater(sanitized);
-  };
-
-  const execEditorCommand = (command, value, ref, updater) => {
-    if (!ref.current || typeof window === 'undefined') return;
-    ref.current.focus();
-
-    if (command === 'createLink') {
-      openLinkModal(ref, updater);
-      return;
-    }
-
-    if (command === 'formatBlock') {
-      document.execCommand(command, false, value);
-      
-      // After creating a heading or other block, ensure cursor doesn't get trapped
-      if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6'].includes(value)) {
-        const selection = window.getSelection();
-        if (selection && selection.rangeCount > 0) {
-          const range = selection.getRangeAt(0);
-          const currentNode = range.commonAncestorContainer;
-          const headingElement = currentNode.nodeType === Node.ELEMENT_NODE 
-            ? currentNode 
-            : currentNode.parentElement;
-          
-          // Check if we're at the end of the heading
-          if (headingElement && /^H[1-6]$/i.test(headingElement.tagName)) {
-            const atEnd = range.endOffset === (headingElement.textContent?.length || 0);
-            
-            // If heading doesn't have a next sibling, add a paragraph after it
-            if (atEnd && !headingElement.nextSibling) {
-              const para = document.createElement('p');
-              para.innerHTML = '<br>';
-              headingElement.parentNode.insertBefore(para, headingElement.nextSibling);
-            }
-          }
-        }
-      }
-    } else {
-      document.execCommand(command, false, value);
-    }
-
-    handleVisualInput(ref, updater);
-  };
-
-  const insertInlineCode = (editorRef, updater) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    const text = selection?.toString() || 'inline code';
-    const html = `<code>${escapeHTML(text)}</code>`;
-    document.execCommand('insertHTML', false, html);
-    handleVisualInput(editorRef, updater);
-  };
-
-  const insertCodeBlock = (editorRef, updater) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    const text = selection?.toString() || 'const example = true;';
-    const html = `<pre><code>${escapeHTML(text)}</code></pre><p><br></p>`;
-    document.execCommand('insertHTML', false, html);
-    handleVisualInput(editorRef, updater);
-  };
-
-  const applyFontSize = (editorRef, updater, size) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    
-    if (!selection || selection.rangeCount === 0) return;
-    
-    const selectedText = selection.toString();
-    if (!selectedText) {
-      // If no text selected, just apply font size command
-      document.execCommand('fontSize', false, '7');
-      // Then override with actual size
-      const fontElements = editorRef.current.querySelectorAll('font[size="7"]');
-      fontElements.forEach(el => {
-        const span = document.createElement('span');
-        span.style.fontSize = size;
-        span.innerHTML = el.innerHTML;
-        el.parentNode.replaceChild(span, el);
-      });
-    } else {
-      // Wrap selected text in span with font size
-      const range = selection.getRangeAt(0);
-      const span = document.createElement('span');
-      span.style.fontSize = size;
-      span.textContent = selectedText;
-      range.deleteContents();
-      range.insertNode(span);
-      
-      // Move cursor after the span
-      range.setStartAfter(span);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-    
-    handleVisualInput(editorRef, updater);
   };
 
   const insertMarkdownSnippet = (textareaRef, snippet, isEditing = false) => {
@@ -333,19 +158,6 @@ const FilesTab = () => {
     }, 0);
   };
 
-  const buildTableHTML = (rows = 3, cols = 2, includeHeader = true) => {
-    const safeRows = Math.max(1, rows);
-    const safeCols = Math.max(1, cols);
-    const headerCells = Array.from({ length: safeCols }, (_, index) => `<th>Header ${index + 1}</th>`).join('');
-    const thead = includeHeader ? `<thead><tr>${headerCells}</tr></thead>` : '';
-    const bodyRowCount = includeHeader ? Math.max(safeRows - 1, 1) : safeRows;
-    const tbodyRows = Array.from({ length: bodyRowCount }, (_, rowIndex) => {
-      const cells = Array.from({ length: safeCols }, (_, colIndex) => `<td>Cell ${rowIndex + 1}-${colIndex + 1}</td>`).join('');
-      return `<tr>${cells}</tr>`;
-    }).join('');
-    return `<table class="table table-bordered">${thead}<tbody>${tbodyRows}</tbody></table><p><br></p>`;
-  };
-
   const buildTableMarkdown = (rows = 3, cols = 2, includeHeader = true) => {
     const safeRows = Math.max(1, rows);
     const safeCols = Math.max(1, cols);
@@ -360,49 +172,21 @@ const FilesTab = () => {
     return `\n${headerLine}\n${separatorLine}\n${bodyLines.join('\n')}\n\n`;
   };
 
-  const openTableModal = ({ mode, context, editorRef, textareaRef, updater }) => {
-    if (mode === 'visual' && editorRef?.current && typeof window !== 'undefined') {
-      editorRef.current.focus();
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        tableSelectionRef.current = selection.getRangeAt(0);
-      } else {
-        tableSelectionRef.current = null;
-      }
-    } else {
-      tableSelectionRef.current = null;
-    }
-
+  const openTableModal = ({ context, textareaRef }) => {
     setTableConfig({ rows: 3, cols: 2, includeHeader: true });
-    setTableModalState({ open: true, mode, context, editorRef, textareaRef, updater });
+    setTableModalState({ open: true, context, textareaRef });
   };
 
   const closeTableModal = () => {
-    setTableModalState({ open: false, mode: 'visual', context: 'create', editorRef: null, textareaRef: null, updater: null });
-    tableSelectionRef.current = null;
+    setTableModalState({ open: false, context: 'create', textareaRef: null });
   };
 
   const insertTableFromModal = () => {
     const { rows, cols, includeHeader } = tableConfig;
     if (rows < 1 || cols < 1) return;
-    const { mode, context, editorRef, textareaRef, updater } = tableModalState;
+    const { context, textareaRef } = tableModalState;
 
-    if (mode === 'visual') {
-      if (!editorRef?.current || typeof window === 'undefined') {
-        closeTableModal();
-        return;
-      }
-      editorRef.current.focus();
-      const selection = window.getSelection();
-      if (tableSelectionRef.current && selection) {
-        selection.removeAllRanges();
-        selection.addRange(tableSelectionRef.current);
-      }
-      const html = buildTableHTML(rows, cols, includeHeader);
-      document.execCommand('insertHTML', false, html);
-      const changeHandler = updater || (context === 'edit' ? updateEditingContent : updateNewFileContent);
-      handleVisualInput(editorRef, changeHandler);
-    } else if (textareaRef) {
+    if (textareaRef) {
       const markdown = buildTableMarkdown(rows, cols, includeHeader);
       insertMarkdownSnippet(textareaRef, markdown, context === 'edit');
     }
@@ -410,78 +194,13 @@ const FilesTab = () => {
     closeTableModal();
   };
 
-  const openSpacingModal = ({ mode, context, editorRef, textareaRef, updater }) => {
-    if (mode === 'visual' && editorRef?.current && typeof window !== 'undefined') {
-      editorRef.current.focus();
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        spacingSelectionRef.current = selection.getRangeAt(0);
-      } else {
-        spacingSelectionRef.current = null;
-      }
-    } else {
-      spacingSelectionRef.current = null;
-    }
-
-    setSpacingModalState({ open: true, mode, context, editorRef, textareaRef, updater });
+  const openSpacingModal = ({ context, textareaRef }) => {
+    setSpacingModalState({ open: true, context, textareaRef });
   };
 
   const closeSpacingModal = () => {
-    setSpacingModalState({ open: false, mode: 'visual', context: 'create', editorRef: null, textareaRef: null, updater: null });
-    spacingSelectionRef.current = null;
+    setSpacingModalState({ open: false, context: 'create', textareaRef: null });
     setSpacingValues({ margin: 16, padding: 16 });
-  };
-
-  const applySpacingToVisual = (editorRef, updater, marginValue, paddingValue) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    if (!selection) return;
-    if (spacingSelectionRef.current && selection.rangeCount > 0) {
-      selection.removeAllRanges();
-      selection.addRange(spacingSelectionRef.current);
-    }
-    if (selection.rangeCount === 0) return;
-
-    const range = selection.getRangeAt(0);
-    const cloned = range.cloneContents();
-    const hasContent = cloned && cloned.childNodes && cloned.childNodes.length > 0;
-    const wrapper = document.createElement('div');
-    const safeMargin = Number.isFinite(marginValue) ? Math.max(0, marginValue) : 0;
-    const safePadding = Number.isFinite(paddingValue) ? Math.max(0, paddingValue) : 0;
-    wrapper.style.margin = `${safeMargin}px`;
-    wrapper.style.padding = `${safePadding}px`;
-    wrapper.style.display = 'block';
-    wrapper.setAttribute('data-spacing-block', 'true');
-
-    if (hasContent) {
-      wrapper.appendChild(cloned);
-    } else {
-      const placeholder = document.createElement('p');
-      placeholder.textContent = 'Add content here';
-      wrapper.appendChild(placeholder);
-    }
-
-    range.deleteContents();
-    range.insertNode(wrapper);
-    
-    // Create an empty paragraph after the wrapper to prevent nesting
-    const nextParagraph = document.createElement('p');
-    nextParagraph.innerHTML = '<br>'; // Ensures the paragraph is visible and editable
-    
-    // Insert the paragraph after the wrapper
-    if (wrapper.nextSibling) {
-      wrapper.parentNode.insertBefore(nextParagraph, wrapper.nextSibling);
-    } else {
-      wrapper.parentNode.appendChild(nextParagraph);
-    }
-    
-    // Move cursor into the new paragraph
-    range.setStart(nextParagraph, 0);
-    range.collapse(true);
-    selection.removeAllRanges();
-    selection.addRange(range);
-    handleVisualInput(editorRef, updater);
   };
 
   const buildSpacingMarkdown = (marginValue, paddingValue) => {
@@ -493,105 +212,16 @@ const FilesTab = () => {
 
   const applySpacingFromModal = () => {
     const { margin, padding } = spacingValues;
-    const { mode, context, editorRef, textareaRef, updater } = spacingModalState;
+    const { context, textareaRef } = spacingModalState;
     const safeMargin = Number.isFinite(margin) ? margin : 0;
     const safePadding = Number.isFinite(padding) ? padding : 0;
 
-    if (mode === 'visual') {
-      const changeHandler = updater || (context === 'edit' ? updateEditingContent : updateNewFileContent);
-      applySpacingToVisual(editorRef, changeHandler, safeMargin, safePadding);
-    } else if (textareaRef) {
+    if (textareaRef) {
       const snippet = buildSpacingMarkdown(safeMargin, safePadding);
       insertMarkdownSnippet(textareaRef, snippet, context === 'edit');
     }
 
     closeSpacingModal();
-  };
-
-  const hideDeleteOverlay = useCallback(() => {
-    overlayHoverRef.current = false;
-    setDeleteOverlay((prev) => (prev.visible ? DELETE_OVERLAY_DEFAULT : prev));
-  }, []);
-
-  const clearOverlayHideTimeout = useCallback(() => {
-    if (overlayHideTimeoutRef.current) {
-      clearTimeout(overlayHideTimeoutRef.current);
-      overlayHideTimeoutRef.current = null;
-    }
-  }, []);
-
-  const requestOverlayHide = useCallback(() => {
-    clearOverlayHideTimeout();
-    overlayHideTimeoutRef.current = setTimeout(() => {
-      if (!overlayHoverRef.current) {
-        hideDeleteOverlay();
-      }
-    }, 120);
-  }, [clearOverlayHideTimeout, hideDeleteOverlay]);
-
-  const handleEditorMouseLeave = (editorRef) => {
-    if (deleteOverlay.editorRef === editorRef) {
-      requestOverlayHide();
-    }
-  };
-
-  const handleEditorMouseMove = (event, editorRef, updater) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    const eventTarget = event.target instanceof Element ? event.target : null;
-    const targetElement = eventTarget?.closest(DELETABLE_SELECTORS);
-    if (!targetElement || !editorRef.current.contains(targetElement)) {
-      if (deleteOverlay.editorRef === editorRef) {
-        requestOverlayHide();
-      }
-      return;
-    }
-
-    clearOverlayHideTimeout();
-
-    const rect = targetElement.getBoundingClientRect();
-    setDeleteOverlay((prev) => {
-      if (prev.visible && prev.target === targetElement) {
-        return prev;
-      }
-      return {
-        visible: true,
-        top: rect.top - 8,
-        left: rect.right - 16,
-        target: targetElement,
-        editorRef,
-        updater,
-      };
-    });
-  };
-
-  const handleDeleteOverlayClick = () => {
-    const { target, editorRef, updater } = deleteOverlay;
-    if (!target || !editorRef?.current) return;
-    target.remove();
-    hideDeleteOverlay();
-    const nextUpdater = typeof updater === 'function'
-      ? updater
-      : editorRef === editEditorRef
-        ? updateEditingContent
-        : updateNewFileContent;
-    if (typeof nextUpdater === 'function') {
-      handleVisualInput(editorRef, nextUpdater);
-    }
-  };
-
-  const insertImageIntoVisual = (editorRef, updater, url) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    document.execCommand('insertImage', false, url);
-    handleVisualInput(editorRef, updater);
-  };
-
-  const triggerInlineImagePicker = (context) => {
-    if (context === 'edit') {
-      editImageInputRef.current?.click();
-    } else {
-      createImageInputRef.current?.click();
-    }
   };
 
   const uploadInlineImage = async (file, fileId = null) => {
@@ -621,6 +251,14 @@ const FilesTab = () => {
     }
   };
 
+  const triggerInlineImagePicker = (context) => {
+    if (context === 'edit') {
+      editImageInputRef.current?.click();
+    } else {
+      createImageInputRef.current?.click();
+    }
+  };
+
   const handleInlineImageSelection = async (event, context) => {
     const file = event.target.files?.[0];
     event.target.value = '';
@@ -636,232 +274,11 @@ const FilesTab = () => {
 
     if (context === 'edit') {
       if (!editingFile) return;
-      if (editEditorMode === 'visual') {
-        insertImageIntoVisual(editEditorRef, updateEditingContent, url);
-      } else {
-        insertMarkdownSnippet(editMarkdownTextareaRef, `![image](${url})\n`, true);
-      }
+      insertMarkdownSnippet(editMarkdownTextareaRef, `![image](${url})\n`, true);
     } else {
-      if (createEditorMode === 'visual') {
-        insertImageIntoVisual(createEditorRef, updateNewFileContent, url);
-      } else {
-        insertMarkdownSnippet(createMarkdownTextareaRef, `![image](${url})\n`);
-      }
+      insertMarkdownSnippet(createMarkdownTextareaRef, `![image](${url})\n`);
     }
   };
-
-  const openLinkModal = (editorRef, updater) => {
-    if (!editorRef?.current || typeof window === 'undefined') return;
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    if (selection && selection.rangeCount > 0) {
-      linkSelectionRef.current = selection.getRangeAt(0);
-    } else {
-      linkSelectionRef.current = null;
-    }
-    setLinkUrl('');
-    setLinkModalState({ open: true, editorRef, updater });
-  };
-
-  const closeLinkModal = () => {
-    setLinkModalState({ open: false, editorRef: null, updater: null });
-    setLinkUrl('');
-    linkSelectionRef.current = null;
-  };
-
-  const insertLinkFromModal = () => {
-    const url = linkUrl.trim();
-    const { editorRef, updater } = linkModalState;
-    if (!url || !editorRef?.current || typeof window === 'undefined') {
-      closeLinkModal();
-      return;
-    }
-
-    editorRef.current.focus();
-    const selection = window.getSelection();
-    if (linkSelectionRef.current && selection) {
-      selection.removeAllRanges();
-      selection.addRange(linkSelectionRef.current);
-    }
-
-    const hasSelection = selection && selection.toString().length > 0;
-    if (!hasSelection) {
-      const anchorHTML = `<a href="${escapeHTML(url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(url)}</a>`;
-      document.execCommand('insertHTML', false, anchorHTML);
-    } else {
-      document.execCommand('createLink', false, url);
-      applyAnchorAttributes(editorRef);
-    }
-
-    handleVisualInput(editorRef, updater);
-    closeLinkModal();
-  };
-
-  const handleEditorKeyDown = (event, editorRef, updater) => {
-    if (event.key !== 'Enter' || typeof window === 'undefined') return;
-    const selection = window.getSelection();
-    if (!selection || !editorRef?.current) return;
-    const anchorNode = selection.anchorNode;
-    if (!anchorNode) return;
-    const hasNodeApi = typeof Node !== 'undefined';
-    const isElementNode = hasNodeApi && anchorNode.nodeType === Node.ELEMENT_NODE;
-    const elementRef = isElementNode ? anchorNode : anchorNode.parentElement;
-    const preParent = elementRef?.closest?.('pre');
-    const codeParent = elementRef?.closest?.('code');
-
-    if (preParent || codeParent) {
-      event.preventDefault();
-      const isBlockCode = Boolean(preParent);
-      const currentSelection = window.getSelection();
-      if (!currentSelection || currentSelection.rangeCount === 0) return;
-      const range = currentSelection.getRangeAt(0);
-      range.deleteContents();
-
-      if (isBlockCode) {
-        const newlineNode = document.createTextNode('\n');
-        range.insertNode(newlineNode);
-        range.setStartAfter(newlineNode);
-        range.collapse(true);
-        currentSelection.removeAllRanges();
-        currentSelection.addRange(range);
-      } else {
-        const br = document.createElement('br');
-        range.insertNode(br);
-        const textNode = document.createTextNode('\u200B');
-        br.parentNode?.insertBefore(textNode, br.nextSibling);
-        range.setStartAfter(textNode);
-        range.collapse(true);
-        currentSelection.removeAllRanges();
-        currentSelection.addRange(range);
-      }
-
-      handleVisualInput(editorRef, updater);
-    }
-  };
-
-  const EditorToolbar = ({
-    editorRef,
-    onChange,
-    onLink,
-    onInlineCode,
-    onCodeBlock,
-    onTable,
-    onSpacing,
-    onImage,
-    imageUploading,
-  }) => (
-    <div className="toolbar editor-toolbar mb-2 p-2 border rounded d-flex flex-wrap gap-2">
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Paragraph" onClick={() => execEditorCommand('formatBlock', 'P', editorRef, onChange)}>
-          <i className="ri-paragraph"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Heading 1" onClick={() => execEditorCommand('formatBlock', 'H1', editorRef, onChange)}>
-          <i className="ri-h-1"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Heading 2" onClick={() => execEditorCommand('formatBlock', 'H2', editorRef, onChange)}>
-          <i className="ri-h-2"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Heading 3" onClick={() => execEditorCommand('formatBlock', 'H3', editorRef, onChange)}>
-          <i className="ri-h-3"></i>
-        </button>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Bold" onClick={() => execEditorCommand('bold', null, editorRef, onChange)}>
-          <i className="ri-bold"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Italic" onClick={() => execEditorCommand('italic', null, editorRef, onChange)}>
-          <i className="ri-italic"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Underline" onClick={() => execEditorCommand('underline', null, editorRef, onChange)}>
-          <i className="ri-underline"></i>
-        </button>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <select 
-          className="form-select form-select-sm" 
-          style={{ width: 'auto', minWidth: '90px' }}
-          title="Font Size"
-          onChange={(e) => {
-            if (e.target.value) {
-              applyFontSize(editorRef, onChange, e.target.value);
-              e.target.value = ''; // Reset to placeholder
-            }
-          }}
-          defaultValue=""
-        >
-          <option value="" disabled>Font Size</option>
-          <option value="10px">10px</option>
-          <option value="12px">12px</option>
-          <option value="14px">14px</option>
-          <option value="16px">16px</option>
-          <option value="18px">18px</option>
-          <option value="20px">20px</option>
-          <option value="24px">24px</option>
-          <option value="28px">28px</option>
-          <option value="32px">32px</option>
-          <option value="36px">36px</option>
-          <option value="48px">48px</option>
-        </select>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Bullet List" onClick={() => execEditorCommand('insertUnorderedList', null, editorRef, onChange)}>
-          <i className="ri-list-unordered"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Numbered List" onClick={() => execEditorCommand('insertOrderedList', null, editorRef, onChange)}>
-          <i className="ri-list-ordered"></i>
-        </button>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Quote" onClick={() => execEditorCommand('formatBlock', 'BLOCKQUOTE', editorRef, onChange)}>
-          <i className="ri-double-quotes-l"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Link" onClick={onLink}>
-          <i className="ri-link"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Remove Formatting" onClick={() => execEditorCommand('removeFormat', null, editorRef, onChange)}>
-          <i className="ri-eraser-line"></i>
-        </button>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Divider" onClick={() => execEditorCommand('insertHorizontalRule', null, editorRef, onChange)}>
-          <i className="ri-separator"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Inline Code" onClick={onInlineCode}>
-          <i className="ri-code-line"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Code Block" onClick={onCodeBlock}>
-          <i className="ri-code-box-line"></i>
-        </button>
-      </div>
-
-      <div className="btn-group btn-group-sm">
-        <button type="button" className="btn btn-outline-secondary" title="Table" onClick={onTable}>
-          <i className="ri-table-line"></i>
-        </button>
-        <button type="button" className="btn btn-outline-secondary" title="Add Spacing" onClick={onSpacing}>
-          <i className="ri-focus-2-line"></i>
-        </button>
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          title="Insert Image"
-          onClick={onImage}
-          disabled={imageUploading}
-        >
-          {imageUploading ? (
-            <div className="spinner-border spinner-border-sm" role="status" />
-          ) : (
-            <i className="ri-image-add-line"></i>
-          )}
-        </button>
-      </div>
-    </div>
-  );
 
   const MarkdownHelperActions = ({ onTable, onImage, onSpacing, imageUploading }) => (
     <div className="d-flex flex-wrap gap-2 mb-2">
@@ -904,24 +321,15 @@ const FilesTab = () => {
       addToast('error', 'Title is too long (max 200 characters)');
       return;
     }
-    if (getContentLength(newFile.content, createEditorMode) > 50000) {
+    if (getContentLength(newFile.content) > 50000) {
       addToast('error', 'Content is too long (max 50,000 characters)');
       return;
     }
 
-    const payloadContent = createEditorMode === 'visual'
-      ? sanitizeHTML(newFile.content || '')
-      : (newFile.content || '');
-
-    const success = await createFile(title, payloadContent);
+    const success = await createFile(title, newFile.content || '');
     if (success) {
       setShowCreateModal(false);
       setNewFile({ title: '', content: '' });
-      setCreateEditorMode('visual');
-      setCreateHtmlInitialized(false);
-      if (createEditorRef.current) {
-        createEditorRef.current.innerHTML = '';
-      }
     }
   };
 
@@ -935,13 +343,10 @@ const FilesTab = () => {
     }
 
     if (typeof payload.content === 'string') {
-      if (getContentLength(payload.content, editEditorMode) > 50000) {
+      if (getContentLength(payload.content) > 50000) {
         addToast('error', 'Content is too long (max 50,000 characters)');
         return;
       }
-      payload.content = editEditorMode === 'visual'
-        ? sanitizeHTML(payload.content)
-        : payload.content;
     }
 
     const success = await updateFile(id, payload);
@@ -1084,38 +489,6 @@ const FilesTab = () => {
     }
   };
 
-  useEffect(() => {
-    if (editingFile && editEditorMode === 'visual' && editEditorRef.current && !editingHtmlInitialized) {
-      const initialHTML = getEditorReadyHTML(editingFile.content || '');
-      editEditorRef.current.innerHTML = initialHTML;
-      updateEditingContent(initialHTML);
-      setEditingHtmlInitialized(true);
-    }
-
-    if ((!editingFile || editEditorMode !== 'visual') && editingHtmlInitialized) {
-      setEditingHtmlInitialized(false);
-      if (editEditorRef.current) {
-        editEditorRef.current.innerHTML = '';
-      }
-    }
-  }, [editingFile, editingHtmlInitialized, editEditorMode]);
-
-  useEffect(() => {
-    if (createEditorMode === 'visual' && createEditorRef.current && !createHtmlInitialized) {
-      const initialHTML = getEditorReadyHTML(newFile.content || '');
-      createEditorRef.current.innerHTML = initialHTML;
-      setCreateHtmlInitialized(true);
-    }
-
-    if (createEditorMode !== 'visual' && createHtmlInitialized) {
-      setCreateHtmlInitialized(false);
-      if (createEditorRef.current) {
-        createEditorRef.current.innerHTML = '';
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [createEditorMode, createHtmlInitialized]);
-
   // Add click handlers to markdown images for fullscreen view
   useEffect(() => {
     const handleImageClick = (e) => {
@@ -1129,20 +502,6 @@ const FilesTab = () => {
     document.addEventListener('click', handleImageClick, true);
     return () => document.removeEventListener('click', handleImageClick, true);
   }, []);
-
-  useEffect(() => () => clearOverlayHideTimeout(), [clearOverlayHideTimeout]);
-
-  useEffect(() => {
-    if ((!showCreateModal || createEditorMode !== 'visual') && deleteOverlay.editorRef === createEditorRef) {
-      hideDeleteOverlay();
-    }
-  }, [showCreateModal, createEditorMode, deleteOverlay.editorRef, hideDeleteOverlay, createEditorRef]);
-
-  useEffect(() => {
-    if ((!viewingFile || !editingFile || editEditorMode !== 'visual') && deleteOverlay.editorRef === editEditorRef) {
-      hideDeleteOverlay();
-    }
-  }, [viewingFile, editingFile, editEditorMode, deleteOverlay.editorRef, hideDeleteOverlay, editEditorRef]);
 
   return (
     <>
@@ -1571,11 +930,6 @@ const FilesTab = () => {
           onClick={() => {
             setShowCreateModal(false);
             setNewFile({ title: '', content: '' });
-            setCreateEditorMode('visual');
-            setCreateHtmlInitialized(false);
-            if (createEditorRef.current) {
-              createEditorRef.current.innerHTML = '';
-            }
           }}
         >
           <div className="modal-dialog modal-lg modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
@@ -1586,11 +940,6 @@ const FilesTab = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => {
                   setShowCreateModal(false);
                   setNewFile({ title: '', content: '' });
-                  setCreateEditorMode('visual');
-                  setCreateHtmlInitialized(false);
-                  if (createEditorRef.current) {
-                    createEditorRef.current.innerHTML = '';
-                  }
                 }} disabled={operationLoading}>
                     <i className="ri-close-line"></i>
                     <span className="d-none d-md-inline ms-2">Cancel</span>
@@ -1638,74 +987,24 @@ const FilesTab = () => {
                 </div>
                 
                 <div className="mb-3">
-                  <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                    <label className="form-label mb-0">Content</label>
-                    <div className="btn-group editor-mode-toggle" role="group">
-                      <button
-                        type="button"
-                        className={`btn btn-sm ${createEditorMode === 'visual' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => setCreateEditorMode('visual')}
-                      >
-                        Visual
-                      </button>
-                      <button
-                        type="button"
-                        className={`btn btn-sm ${createEditorMode === 'markdown' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                        onClick={() => setCreateEditorMode('markdown')}
-                      >
-                        Markdown
-                      </button>
-                    </div>
-                  </div>
-
-                  {createEditorMode === 'visual' ? (
-                    <>
-                      <EditorToolbar
-                        editorRef={createEditorRef}
-                        onChange={updateNewFileContent}
-                        onLink={() => openLinkModal(createEditorRef, updateNewFileContent)}
-                        onInlineCode={() => insertInlineCode(createEditorRef, updateNewFileContent)}
-                        onCodeBlock={() => insertCodeBlock(createEditorRef, updateNewFileContent)}
-                        onTable={() => openTableModal({ mode: 'visual', context: 'create', editorRef: createEditorRef, updater: updateNewFileContent })}
-                        onSpacing={() => openSpacingModal({ mode: 'visual', context: 'create', editorRef: createEditorRef, updater: updateNewFileContent })}
-                        onImage={() => triggerInlineImagePicker('create')}
-                        imageUploading={inlineImageUploading && inlineImageContext === 'create'}
-                      />
-                      <div
-                        ref={createEditorRef}
-                        className="form-control visual-editor"
-                        contentEditable
-                        data-placeholder="Design your document visually..."
-                        onKeyDown={(e) => handleEditorKeyDown(e, createEditorRef, updateNewFileContent)}
-                        onInput={() => handleVisualInput(createEditorRef, updateNewFileContent)}
-                        onMouseMove={(e) => handleEditorMouseMove(e, createEditorRef, updateNewFileContent)}
-                        onMouseLeave={() => handleEditorMouseLeave(createEditorRef)}
-                        suppressContentEditableWarning={true}
-                        style={{ minHeight: '320px', overflowY: 'auto' }}
-                      ></div>
-                    </>
-                  ) : (
-                    <>
-                      <MarkdownHelperActions
-                        onTable={() => openTableModal({ mode: 'markdown', context: 'create', textareaRef: createMarkdownTextareaRef })}
-                        onSpacing={() => openSpacingModal({ mode: 'markdown', context: 'create', textareaRef: createMarkdownTextareaRef })}
-                        onImage={() => triggerInlineImagePicker('create')}
-                        imageUploading={inlineImageUploading && inlineImageContext === 'create'}
-                      />
-                      <textarea
-                        ref={createMarkdownTextareaRef}
-                        className="form-control"
-                        rows="18"
-                        placeholder="Write content using markdown syntax (supports headings, lists, code blocks, etc.)"
-                        value={newFile.content}
-                        onChange={(e) => setNewFile({ ...newFile, content: e.target.value })}
-                        maxLength={50000}
-                      ></textarea>
-                    </>
-                  )}
-
+                  <label className="form-label">Content</label>
+                  <MarkdownHelperActions
+                    onTable={() => openTableModal({ context: 'create', textareaRef: createMarkdownTextareaRef })}
+                    onSpacing={() => openSpacingModal({ context: 'create', textareaRef: createMarkdownTextareaRef })}
+                    onImage={() => triggerInlineImagePicker('create')}
+                    imageUploading={inlineImageUploading && inlineImageContext === 'create'}
+                  />
+                  <textarea
+                    ref={createMarkdownTextareaRef}
+                    className="form-control"
+                    rows="18"
+                    placeholder="Write content using markdown syntax (supports headings, lists, code blocks, etc.)"
+                    value={newFile.content}
+                    onChange={(e) => setNewFile({ ...newFile, content: e.target.value })}
+                    maxLength={50000}
+                  ></textarea>
                   <small className="text-muted d-block">
-                    {getContentLength(newFile.content, createEditorMode)} / 50,000 characters
+                    {getContentLength(newFile.content)} / 50,000 characters
                   </small>
                 </div>
         </div>
@@ -1794,73 +1093,24 @@ const FilesTab = () => {
                       <small className="text-muted">{editingFile.title.length}/200</small>
                     </div>
                     <div className="mb-3">
-                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                        <label className="form-label mb-0">Content</label>
-                        <div className="btn-group editor-mode-toggle" role="group">
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${editEditorMode === 'visual' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                            onClick={() => setEditEditorMode('visual')}
-                          >
-                            Visual
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn btn-sm ${editEditorMode === 'markdown' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                            onClick={() => setEditEditorMode('markdown')}
-                          >
-                            Markdown
-                          </button>
-                        </div>
-                      </div>
-
-                      {editEditorMode === 'visual' ? (
-                        <>
-                          <EditorToolbar
-                            editorRef={editEditorRef}
-                            onChange={updateEditingContent}
-                            onLink={() => openLinkModal(editEditorRef, updateEditingContent)}
-                            onInlineCode={() => insertInlineCode(editEditorRef, updateEditingContent)}
-                            onCodeBlock={() => insertCodeBlock(editEditorRef, updateEditingContent)}
-                            onTable={() => openTableModal({ mode: 'visual', context: 'edit', editorRef: editEditorRef, updater: updateEditingContent })}
-                            onSpacing={() => openSpacingModal({ mode: 'visual', context: 'edit', editorRef: editEditorRef, updater: updateEditingContent })}
-                            onImage={() => triggerInlineImagePicker('edit')}
-                            imageUploading={inlineImageUploading && inlineImageContext === 'edit'}
-                          />
-                          <div
-                            ref={editEditorRef}
-                            className="form-control visual-editor"
-                            contentEditable
-                            onKeyDown={(e) => handleEditorKeyDown(e, editEditorRef, updateEditingContent)}
-                            onInput={() => handleVisualInput(editEditorRef, updateEditingContent)}
-                            onMouseMove={(e) => handleEditorMouseMove(e, editEditorRef, updateEditingContent)}
-                            onMouseLeave={() => handleEditorMouseLeave(editEditorRef)}
-                            suppressContentEditableWarning={true}
-                            style={{ minHeight: '360px', overflowY: 'auto' }}
-                          ></div>
-                        </>
-                      ) : (
-                        <>
-                          <MarkdownHelperActions
-                            onTable={() => openTableModal({ mode: 'markdown', context: 'edit', textareaRef: editMarkdownTextareaRef })}
-                            onSpacing={() => openSpacingModal({ mode: 'markdown', context: 'edit', textareaRef: editMarkdownTextareaRef })}
-                            onImage={() => triggerInlineImagePicker('edit')}
-                            imageUploading={inlineImageUploading && inlineImageContext === 'edit'}
-                          />
-                          <textarea
-                            ref={editMarkdownTextareaRef}
-                            className="form-control"
-                            rows="18"
-                            placeholder="Edit content in raw markdown"
-                            value={editingFile.content}
-                            onChange={(e) => setEditingFile({ ...editingFile, content: e.target.value })}
-                            maxLength={50000}
-                          ></textarea>
-                        </>
-                      )}
-
+                      <label className="form-label">Content</label>
+                      <MarkdownHelperActions
+                        onTable={() => openTableModal({ context: 'edit', textareaRef: editMarkdownTextareaRef })}
+                        onSpacing={() => openSpacingModal({ context: 'edit', textareaRef: editMarkdownTextareaRef })}
+                        onImage={() => triggerInlineImagePicker('edit')}
+                        imageUploading={inlineImageUploading && inlineImageContext === 'edit'}
+                      />
+                      <textarea
+                        ref={editMarkdownTextareaRef}
+                        className="form-control"
+                        rows="18"
+                        placeholder="Edit content in raw markdown"
+                        value={editingFile.content}
+                        onChange={(e) => setEditingFile({ ...editingFile, content: e.target.value })}
+                        maxLength={50000}
+                      ></textarea>
                       <small className="text-muted d-block">
-                        {getContentLength(editingFile.content || '', editEditorMode)} / 50,000 characters
+                        {getContentLength(editingFile.content || '')} / 50,000 characters
                       </small>
                     </div>
                   </>
@@ -1955,40 +1205,6 @@ const FilesTab = () => {
         ) : (
           <p className="mb-0 text-muted"><small>Folder is empty and ready to be deleted.</small></p>
         )}
-      </Modal>
-
-      {/* Insert Link Modal */}
-      <Modal
-        open={linkModalState.open}
-        onClose={closeLinkModal}
-        title="Insert Link"
-        footer={
-          <div className="d-flex gap-2 justify-content-end w-100">
-            <button type="button" className="btn btn-outline-secondary" onClick={closeLinkModal}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={insertLinkFromModal}
-              disabled={!linkUrl.trim()}
-            >
-              Insert
-            </button>
-          </div>
-        }
-      >
-        <div className="mb-3">
-          <label className="form-label">URL</label>
-          <input
-            type="url"
-            className="form-control"
-            placeholder="https://example.com"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-          />
-          <small className="text-muted">Highlight text in the editor before inserting a link.</small>
-        </div>
       </Modal>
 
       <Modal
@@ -2099,7 +1315,7 @@ const FilesTab = () => {
             />
           </div>
           <div className="col-12">
-            <small className="text-muted d-block">Spacing wraps your selected content inside a div with margin/padding styles. Works in both visual and markdown modes.</small>
+            <small className="text-muted d-block">Spacing wraps your selected content inside a div with margin/padding styles.</small>
           </div>
         </div>
       </Modal>
@@ -2164,27 +1380,6 @@ const FilesTab = () => {
             onClick={(e) => e.stopPropagation()}
           />
         </div>
-      )}
-
-      {deleteOverlay.visible && deleteOverlay.target && (
-        <button
-          type="button"
-          className="content-delete-overlay"
-          style={{ top: deleteOverlay.top, left: deleteOverlay.left }}
-          onClick={handleDeleteOverlayClick}
-          title="Remove"
-          aria-label="Delete block"
-          onMouseEnter={() => {
-            overlayHoverRef.current = true;
-            clearOverlayHideTimeout();
-          }}
-          onMouseLeave={() => {
-            overlayHoverRef.current = false;
-            requestOverlayHide();
-          }}
-        >
-          <i className="ri-close-circle-line"></i>
-        </button>
       )}
 
       <input

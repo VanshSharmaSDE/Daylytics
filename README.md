@@ -33,12 +33,16 @@ The following sections provide a detailed description of product features and th
 
 ### Notes & Files (Markdown editor)
 - Files are stored as Markdown documents with a title and content.
-- Editor supports:
-  - Headings (H1/H2/H3) and formatting (bold, italic)
+- Markdown editor with helper actions for:
+  - Tables with configurable rows/columns
+  - Custom spacing (margin/padding wrappers)
+  - Inline image uploads
+- Markdown syntax support:
+  - Headings (H1-H6) and formatting (bold, italic)
   - Links, inline code, code blocks, blockquotes
   - Ordered and unordered lists
   - Tables and horizontal rules
-  - Inline images: users can upload images and embed them into notes; images are uploaded to Cloudinary and tracked in the file's metadata.
+- Inline images: users can upload images and embed them into notes; images are uploaded to Cloudinary and tracked in the file's metadata.
 - Inline image metadata: each inline image stores { fileId, url, originalName, size } so storage can be accurately tracked and cleaned up when a file or image is deleted.
 - Preview: live markdown rendering using `marked` with sanitized output to prevent XSS.
 
@@ -104,7 +108,7 @@ Daylytics/
 Key files
 - `client/src/api/index.js` — central Axios instance and API helper modules
 - `client/src/context/DataContext.jsx` — primary data operations and caching layer for tasks, files, folders, and bucket
-- `client/src/pages/FilesTab.jsx` — Markdown/visual editor, inline image upload handling, and file management UI
+- `client/src/pages/FilesTab.jsx` — Markdown editor, inline image upload handling, and file management UI
 - `server/src/routes/files.js` — API handlers for file CRUD and inline image uploads
 - `server/src/models/File.js` — Mongoose schema with `inlineImages` metadata
 - `server/src/services/cloudinaryService.js` — Cloudinary upload/delete helpers and URL signing utilities
