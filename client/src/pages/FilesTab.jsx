@@ -1183,7 +1183,7 @@ ${existingContent}
                 ) : (
                   <div className="file-content">
                     <div 
-                      className="visual-preview markdown-body"
+                      className="markdown-preview markdown-body"
                       dangerouslySetInnerHTML={{ __html: getRenderableContent(viewingFile.content) }}
                     />
                   </div>
