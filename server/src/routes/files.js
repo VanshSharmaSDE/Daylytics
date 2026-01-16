@@ -1,9 +1,12 @@
 const express = require('express');
 const multer = require('multer');
+const crypto = require('crypto');
 const auth = require('../middleware/auth');
 const File = require('../models/File');
+const SharedLink = require('../models/SharedLink');
 const cloudinaryService = require('../services/cloudinaryService');
 const router = express.Router();
+const sharedRouter = express.Router(); // Separate router for public shared links
 
 // Helper function to sync inline images from markdown content
 async function syncInlineImages(file) {
@@ -59,6 +62,36 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB limit for files
 });
 
+// PUBLIC SHARED FILE ROUTE (separate router for /api/shared)
+// Get shared file (public route - no auth required)
+sharedRouter.get('/:token', async (req, res) => {
+  try {
+    console.log('Public share access for token:', req.params.token);
+    
+    const sharedLink = await SharedLink.findOne({ 
+      token: req.params.token, 
+      isActive: true 
+    }).populate('file', 'title content updatedAt');
+
+    if (!sharedLink) {
+      console.log('SharedLink not found or inactive');
+      return res.status(404).json({ msg: 'File not found or link has been removed' });
+    }
+    
+    if (!sharedLink.file) {
+      console.log('SharedLink found but file is null (deleted)');
+      return res.status(404).json({ msg: 'File has been deleted' });
+    }
+
+    console.log('File found:', sharedLink.file.title);
+
+    res.json(sharedLink.file);
+  } catch (err) {
+    console.error('Fetch shared file error:', err);
+    res.status(500).json({ msg: 'Failed to fetch shared file' });
+  }
+});
+
 // GET /api/files - Get all files for user
 router.get('/', auth, async (req, res) => {
   try {
@@ -75,6 +108,58 @@ router.get('/', auth, async (req, res) => {
     res.json(files);
   } catch (err) {
     res.status(500).send('Server error');
+  }
+});
+
+// SHARED LINKS ROUTES - MUST BE BEFORE /:id ROUTES
+// Get all shared links for the user
+router.get('/shared-links', auth, async (req, res) => {
+  try {
+    console.log('Fetching shared links for user:', req.user._id);
+    
+    const sharedLinks = await SharedLink.find({ 
+      user: req.user._id, 
+      isActive: true 
+    }).populate('file', 'title updatedAt').sort({ createdAt: -1 });
+
+    console.log('Found shared links:', sharedLinks.length);
+    
+    // Filter out links where file was deleted
+    const validLinks = sharedLinks.filter(link => {
+      if (!link.file) {
+        console.log('Link with deleted file found, filtering out:', link._id);
+        return false;
+      }
+      return true;
+    });
+
+    console.log('Valid links after filtering:', validLinks.length);
+    res.json(validLinks);
+  } catch (err) {
+    console.error('Fetch shared links error:', err);
+    res.status(500).json({ msg: 'Failed to fetch shared links' });
+  }
+});
+
+// Delete/deactivate a shared link
+router.delete('/shared-links/:id', auth, async (req, res) => {
+  try {
+    const sharedLink = await SharedLink.findOne({ 
+      _id: req.params.id, 
+      user: req.user._id 
+    });
+
+    if (!sharedLink) {
+      return res.status(404).json({ msg: 'Shared link not found' });
+    }
+
+    sharedLink.isActive = false;
+    await sharedLink.save();
+
+    res.json({ msg: 'Shared link deleted' });
+  } catch (err) {
+    console.error('Delete shared link error:', err);
+    res.status(500).json({ msg: 'Failed to delete shared link' });
   }
 });
 
@@ -411,4 +496,48 @@ router.post('/upload-inline', auth, upload.single('image'), async (req, res) => 
   }
 });
 
-module.exports = router;
+// Generate share link for a file
+router.post('/:id/share', auth, async (req, res) => {
+  try {
+    console.log('Share link request for file:', req.params.id, 'by user:', req.user._id);
+    
+    const file = await File.findOne({ _id: req.params.id, user: req.user._id });
+    
+    if (!file) {
+      console.log('File not found:', req.params.id);
+      return res.status(404).json({ msg: 'File not found or you do not have permission' });
+    }
+
+    console.log('File found:', file.title);
+    
+    // Check if active link already exists for this user and file
+    let sharedLink = await SharedLink.findOne({ 
+      user: req.user._id,
+      file: file._id, 
+      isActive: true 
+    });
+    
+    let isExisting = false;
+    if (!sharedLink) {
+      // Generate unique share token
+      const token = crypto.randomBytes(32).toString('hex');
+      sharedLink = new SharedLink({
+        user: req.user._id,
+        file: file._id,
+        token
+      });
+      await sharedLink.save();
+      console.log('New share link created:', token);
+    } else {
+      isExisting = true;
+      console.log('Existing share link found:', sharedLink.token);
+    }
+
+    res.json({ shareToken: sharedLink.token, isExisting });
+  } catch (err) {
+    console.error('Share link generation error:', err);
+    res.status(500).json({ msg: 'Failed to generate share link' });
+  }
+});
+
+module.exports = { router, sharedRouter };

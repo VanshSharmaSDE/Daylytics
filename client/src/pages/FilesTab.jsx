@@ -56,6 +56,10 @@ const FilesTab = () => {
   const [folderDeleteInfo, setFolderDeleteInfo] = useState({ loading: false, subfolderCount: 0, fileCount: 0 });
   const [newFile, setNewFile] = useState({ title: '', content: '' });
   const [newFolderName, setNewFolderName] = useState('');
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState({ files: [], folders: [] });
+  const [isSearching, setIsSearching] = useState(false);
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState(null);
   const [inlineImageUploading, setInlineImageUploading] = useState(false);
@@ -64,11 +68,100 @@ const FilesTab = () => {
   const [tableConfig, setTableConfig] = useState({ rows: 3, cols: 2, includeHeader: true });
   const [spacingModalState, setSpacingModalState] = useState({ open: false, context: 'create', textareaRef: null });
   const [spacingValues, setSpacingValues] = useState({ margin: 16, padding: 16 });
+  const [calendarModalState, setCalendarModalState] = useState({ open: false, context: 'create', textareaRef: null, editingId: null });
+  const [calendarConfig, setCalendarConfig] = useState({ 
+    year: new Date().getFullYear(), 
+    month: new Date().getMonth() + 1,
+    startDate: 1,
+    endDate: 31
+  });
+  const [calendarDates, setCalendarDates] = useState({});
+  const [dateMessageModal, setDateMessageModal] = useState({ open: false, day: null, message: '' });
+  const [showDeleteCalendarModal, setShowDeleteCalendarModal] = useState(false);
+  const [deleteCalendarTarget, setDeleteCalendarTarget] = useState({ calendarId: null, context: null, fileId: null });
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareFile, setShareFile] = useState(null);
+  const [shareLink, setShareLink] = useState('');
+  const [generatingShareLink, setGeneratingShareLink] = useState(false);
+  const [sharedLinks, setSharedLinks] = useState([]);
+  const [showSharedLinksSection, setShowSharedLinksSection] = useState(false);
+  const [deletingLinkId, setDeletingLinkId] = useState(null);
+  const [fetchingSharedLinks, setFetchingSharedLinks] = useState(false);
 
   const createImageInputRef = useRef(null);
   const editImageInputRef = useRef(null);
   const createMarkdownTextareaRef = useRef(null);
   const editMarkdownTextareaRef = useRef(null);
+
+  // Fast server-side search
+  const performSearch = useCallback(async (query) => {
+    if (!query.trim()) {
+      setSearchResults({ files: [], folders: [] });
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      const response = await API.get('/api/search', { 
+        params: { query: query.trim() } 
+      });
+      
+      setSearchResults({
+        files: response.data.files || [],
+        folders: response.data.folders || []
+      });
+    } catch (error) {
+      console.error('Search error:', error);
+      addToast('error', 'Search failed. Please try again.');
+      setSearchResults({ files: [], folders: [] });
+    } finally {
+      setIsSearching(false);
+    }
+  }, [addToast]);
+
+  // Debounced search effect
+  useEffect(() => {
+    if (!showSearchModal) return;
+    
+    const timer = setTimeout(() => {
+      performSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, showSearchModal, performSearch]);
+
+  const openSearchModal = () => {
+    setShowSearchModal(true);
+    setSearchQuery('');
+    setSearchResults({ files: [], folders: [] });
+  };
+
+  const closeSearchModal = () => {
+    setShowSearchModal(false);
+    setSearchQuery('');
+    setSearchResults({ files: [], folders: [] });
+  };
+
+  const openFileFromSearch = (file) => {
+    // Navigate to the file's folder if needed
+    if (file.folder && file.folder !== folderPath[folderPath.length - 1]?._id) {
+      navigateToFolder(file.folder);
+    }
+    setViewingFile(file);
+    closeSearchModal();
+  };
+
+  const openFolderFromSearch = (folder) => {
+    navigateToFolder(folder._id, folder.name);
+    closeSearchModal();
+  };
+
+  const highlightSearchText = (text, query) => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  };
 
   const formatFileSize = (bytes) => {
     if (!bytes) return '0 Bytes';
@@ -83,6 +176,7 @@ const FilesTab = () => {
     if (typeof window === 'undefined') return html;
     const temp = document.createElement('div');
     temp.innerHTML = html;
+    // Only remove script tags, keep everything else including buttons
     temp.querySelectorAll('script').forEach((node) => node.remove());
     return temp.innerHTML;
   };
@@ -107,7 +201,45 @@ const FilesTab = () => {
     if (!content?.trim()) {
       return '<p class="text-muted">No content added yet.</p>';
     }
-    const html = renderMarkdown(content);
+    
+    // Split content by calendar widgets
+    const parts = [];
+    const calendarRegex = /<div class="calendar-widget"[\s\S]*?<\/div><\/div><\/div>/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = calendarRegex.exec(content)) !== null) {
+      // Add markdown content before calendar
+      if (match.index > lastIndex) {
+        const markdownPart = content.substring(lastIndex, match.index);
+        parts.push({ type: 'markdown', content: markdownPart });
+      }
+      // Add calendar as-is
+      parts.push({ type: 'calendar', content: match[0] });
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining markdown content
+    if (lastIndex < content.length) {
+      const markdownPart = content.substring(lastIndex);
+      parts.push({ type: 'markdown', content: markdownPart });
+    }
+    
+    // Process each part
+    let html = '';
+    parts.forEach(part => {
+      if (part.type === 'calendar') {
+        html += part.content;
+      } else if (part.type === 'markdown') {
+        html += renderMarkdown(part.content);
+      }
+    });
+    
+    // If no calendars found, just render as markdown
+    if (parts.length === 0) {
+      html = renderMarkdown(content);
+    }
+    
     return sanitizeHTML(html);
   };
 
@@ -288,6 +420,262 @@ ${existingContent}
     closeSpacingModal();
   };
 
+  // Footer variables for modals (defined after functions they reference)
+  const tableModalFooter = (
+    <div className="d-flex gap-2 justify-content-end w-100">
+      <button type="button" className="btn btn-outline-secondary" onClick={closeTableModal}>
+        Cancel
+      </button>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={insertTableFromModal}
+        disabled={tableConfig.rows < 1 || tableConfig.cols < 1}
+      >
+        Insert table
+      </button>
+    </div>
+  );
+
+  const spacingModalFooter = (
+    <div className="d-flex gap-2 justify-content-end w-100">
+      <button type="button" className="btn btn-outline-secondary" onClick={closeSpacingModal}>
+        Cancel
+      </button>
+      <button type="button" className="btn btn-primary" onClick={applySpacingFromModal}>
+        Apply spacing
+      </button>
+    </div>
+  );
+
+  const isTableModalOpen = !!(tableModalState && tableModalState.open);
+
+  const hasCalendar = (content) => {
+    return content.includes('data-calendar="true"');
+  };
+
+  const extractCalendarData = (content, calendarId = null) => {
+    let match;
+    if (calendarId) {
+      // Extract specific calendar by ID
+      const regex = new RegExp(`<div class="calendar-widget" data-calendar="true" data-calendar-id="${calendarId}" data-year="(\\d+)" data-month="(\\d+)" data-start="(\\d+)" data-end="(\\d+)">`);
+      match = content.match(regex);
+      if (!match) return null;
+      
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const startDate = parseInt(match[3], 10);
+      const endDate = parseInt(match[4], 10);
+      
+      // Extract date messages from this specific calendar
+      const calendarStart = content.indexOf(match[0]);
+      const calendarEnd = content.indexOf('</div></div></div>', calendarStart) + 18;
+      const calendarContent = content.substring(calendarStart, calendarEnd);
+      
+      const dateMessages = {};
+      const messageRegex = /<div class="calendar-day[^"]*" data-day="(\d+)">.*?<div class="date-message"[^>]*>([^<]+)<\/div>/gs;
+      let messageMatch;
+      while ((messageMatch = messageRegex.exec(calendarContent)) !== null) {
+        dateMessages[parseInt(messageMatch[1], 10)] = messageMatch[2];
+      }
+      
+      return { year, month, startDate, endDate, dateMessages };
+    } else {
+      // Extract first calendar found
+      match = content.match(/<div class="calendar-widget" data-calendar="true" data-calendar-id="(\d+)" data-year="(\d+)" data-month="(\d+)" data-start="(\d+)" data-end="(\d+)">/);
+      if (!match) return null;
+      
+      const year = parseInt(match[2], 10);
+      const month = parseInt(match[3], 10);
+      const startDate = parseInt(match[4], 10);
+      const endDate = parseInt(match[5], 10);
+      
+      const dateMessages = {};
+      const messageRegex = /<div class="calendar-day[^"]*" data-day="(\d+)">.*?<div class="date-message"[^>]*>([^<]+)<\/div>/gs;
+      let messageMatch;
+      while ((messageMatch = messageRegex.exec(content)) !== null) {
+        dateMessages[parseInt(messageMatch[1], 10)] = messageMatch[2];
+      }
+      
+      return { year, month, startDate, endDate, dateMessages };
+    }
+  };
+
+  const openCalendarModal = (context, textareaRef, calendarId = null) => {
+    // Get current content - prefer editingFile, fallback to viewingFile for view-to-edit transitions
+    const currentContent = context === 'edit' 
+      ? (editingFile?.content || viewingFile?.content || '')
+      : (newFile.content || '');
+    
+    if (calendarId) {
+      // Editing specific calendar
+      const calendarData = extractCalendarData(currentContent, calendarId);
+      if (calendarData) {
+        setCalendarConfig({
+          year: calendarData.year,
+          month: calendarData.month,
+          startDate: calendarData.startDate,
+          endDate: calendarData.endDate
+        });
+        setCalendarDates(calendarData.dateMessages);
+      } else {
+        console.error('Failed to extract calendar data for ID:', calendarId);
+      }
+    } else {
+      // Adding new calendar - reset to defaults
+      setCalendarConfig({
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        startDate: 1,
+        endDate: 31
+      });
+      setCalendarDates({});
+    }
+    
+    setCalendarModalState({ open: true, context, textareaRef, editingId: calendarId });
+  };
+
+  const closeCalendarModal = () => {
+    setCalendarModalState({ open: false, context: 'create', textareaRef: null, editingId: null });
+    setCalendarConfig({ 
+      year: new Date().getFullYear(), 
+      month: new Date().getMonth() + 1,
+      startDate: 1,
+      endDate: 31
+    });
+    setCalendarDates({});
+  };
+
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year, month) => {
+    return new Date(year, month - 1, 1).getDay();
+  };
+
+  const buildCalendarHTML = (year, month, startDate, endDate, dateMessages, calendarId = Date.now()) => {
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstDay = getFirstDayOfMonth(year, month);
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const validStart = Math.max(1, Math.min(startDate, daysInMonth));
+    const validEnd = Math.max(validStart, Math.min(endDate, daysInMonth));
+    
+    let html = `<div class="calendar-widget" data-calendar="true" data-calendar-id="${calendarId}" data-year="${year}" data-month="${month}" data-start="${validStart}" data-end="${validEnd}">`;
+    html += `<div class="calendar-actions">`;
+    html += `<button class="calendar-action-btn edit-calendar" data-action="edit" title="Edit calendar"><i class="ri-edit-line"></i></button>`;
+    html += `<button class="calendar-action-btn delete-calendar" data-action="delete" title="Delete calendar"><i class="ri-delete-bin-line"></i></button>`;
+    html += `</div>`;
+    html += `<div class="calendar-header">${monthNames[month - 1]} ${year}</div>`;
+    html += `<div class="calendar-grid">`;
+    
+    // Day headers
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayNames.forEach(day => {
+      html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+      html += `<div class="calendar-day empty"></div>`;
+    }
+    
+    // Days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const isInRange = day >= validStart && day <= validEnd;
+      const message = dateMessages[day] || '';
+      const hasMessage = message.trim().length > 0;
+      
+      html += `<div class="calendar-day${isInRange ? ' in-range' : ''}${hasMessage ? ' has-message' : ''}" data-day="${day}">`;
+      html += `<span class="day-number">${day}</span>`;
+      if (hasMessage) {
+        const escapedMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html += `<div class="date-message" style="display:none;">${escapedMessage}</div>`;
+      }
+      html += `</div>`;
+    }
+    
+    html += `</div></div>`;
+    return html;
+  };
+
+  const updateCalendar = (content, calendarId, year, month, startDate, endDate, dateMessages) => {
+    const calendarRegex = new RegExp(`<div class="calendar-widget" data-calendar="true" data-calendar-id="${calendarId}"[\\s\\S]*?</div></div></div>`);
+    const newCalendarHTML = buildCalendarHTML(year, month, startDate, endDate, dateMessages, calendarId);
+    return content.replace(calendarRegex, newCalendarHTML);
+  };
+
+  const applyCalendarFromModal = async () => {
+    const { year, month, startDate, endDate } = calendarConfig;
+    const { context, textareaRef, editingId } = calendarModalState;
+    
+    if (textareaRef) {
+      const currentContent = context === 'edit' ? editingFile?.content || '' : newFile.content || '';
+      
+      if (editingId) {
+        // Update existing specific calendar
+        const updatedContent = updateCalendar(currentContent, editingId, year, month, startDate, endDate, calendarDates);
+        if (context === 'edit') {
+          // Persist immediately for existing files
+          if (editingFile && editingFile._id) {
+            const success = await handleUpdateFile(editingFile._id, { content: updatedContent });
+            if (success) {
+              setEditingFile((prev) => (prev ? { ...prev, content: updatedContent } : prev));
+              setViewingFile((prev) => prev && prev._id === editingFile._id ? { ...prev, content: updatedContent } : prev);
+              addToast('success', 'Calendar updated');
+            } else {
+              addToast('error', 'Failed to update calendar');
+            }
+          } else if (viewingFile && viewingFile._id) {
+            // If editing via view context
+            const success = await handleUpdateFile(viewingFile._id, { content: updatedContent });
+            if (success) {
+              setViewingFile((prev) => prev ? { ...prev, content: updatedContent } : prev);
+              addToast('success', 'Calendar updated');
+            } else {
+              addToast('error', 'Failed to update calendar');
+            }
+          } else {
+            setEditingFile((prev) => (prev ? { ...prev, content: updatedContent } : prev));
+            addToast('success', 'Calendar updated');
+          }
+        } else {
+          setNewFile((prev) => ({ ...prev, content: updatedContent }));
+          addToast('success', 'Calendar updated');
+        }
+      } else {
+        // Insert new calendar
+        const calendarHTML = buildCalendarHTML(year, month, startDate, endDate, calendarDates);
+        insertMarkdownSnippet(textareaRef, `\n${calendarHTML}\n`, context === 'edit');
+        addToast('success', 'Calendar added');
+      }
+    }
+    
+    closeCalendarModal();
+  };
+
+  const deleteCalendar = (calendarId, context) => {
+    const currentContent = context === 'edit' ? editingFile?.content || '' : newFile.content || '';
+    const calendarRegex = new RegExp(`<div class="calendar-widget" data-calendar="true" data-calendar-id="${calendarId}"[\\s\\S]*?</div></div></div>`, 'g');
+    const updatedContent = currentContent.replace(calendarRegex, '');
+    
+    if (context === 'edit') {
+      setEditingFile((prev) => (prev ? { ...prev, content: updatedContent } : prev));
+    } else {
+      setNewFile((prev) => ({ ...prev, content: updatedContent }));
+    }
+    addToast('success', 'Calendar deleted');
+    return updatedContent;
+  };
+
+  const handleDateMessageChange = (day, message) => {
+    setCalendarDates(prev => ({
+      ...prev,
+      [day]: message
+    }));
+  };
+
   const uploadInlineImage = async (file, fileId = null) => {
     if (!file) return null;
     if (!file.type.startsWith('image/')) {
@@ -344,11 +732,15 @@ ${existingContent}
     }
   };
 
-  const MarkdownHelperActions = ({ onTable, onImage, onSpacing, imageUploading, hasSpacing }) => (
+  const MarkdownHelperActions = ({ onTable, onImage, onSpacing, onCalendar, imageUploading, hasSpacing }) => (
     <div className="d-flex flex-wrap gap-2 mb-2">
       <button type="button" className="btn btn-sm btn-outline-primary" onClick={onTable}>
         <i className="ri-table-line me-1"></i>
         Insert table
+      </button>
+      <button type="button" className="btn btn-sm btn-outline-primary" onClick={onCalendar}>
+        <i className="ri-calendar-line me-1"></i>
+        Insert calendar
       </button>
       <button type="button" className="btn btn-sm btn-outline-primary" onClick={onSpacing}>
         <i className="ri-focus-2-line me-1"></i>
@@ -417,6 +809,7 @@ ${existingContent}
     if (success && editingFile?._id === id) {
       resetEditingState();
     }
+    return success;
   };
 
   const handleDeleteFile = async (id) => {
@@ -567,6 +960,199 @@ ${existingContent}
     return () => document.removeEventListener('click', handleImageClick, true);
   }, []);
 
+  // Add click handlers for calendar dates
+  useEffect(() => {
+    const handleCalendarClick = (e) => {
+      try {
+        // Only handle calendar day clicks, not action buttons
+        if (e.target.closest('.calendar-action-btn')) return;
+        
+        const calendarDay = e.target.closest('.calendar-day.has-message');
+        if (calendarDay && calendarDay.closest('.visual-preview, .markdown-preview')) {
+          const messageDiv = calendarDay.querySelector('.date-message');
+          if (messageDiv) {
+            const message = messageDiv.textContent;
+            const day = calendarDay.dataset.day;
+            if (message) {
+              setDateMessageModal({ open: true, day, message });
+            }
+          } else {
+              }
+        }
+      } catch (err) {
+        console.error('[Calendar] click handler error', err);
+      }
+    };
+
+    document.addEventListener('click', handleCalendarClick, true);
+    return () => document.removeEventListener('click', handleCalendarClick, true);
+  }, []);
+
+  // Add click handlers for calendar edit/delete buttons
+  useEffect(() => {
+    const handleCalendarAction = (e) => {
+      try {
+        const actionBtn = e.target.closest('.calendar-action-btn');
+        if (actionBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const calendar = actionBtn.closest('.calendar-widget');
+          if (!calendar) return;
+          
+          // Check if calendar is in preview mode
+          if (!calendar.closest('.visual-preview, .markdown-preview')) return;
+          
+          const calendarId = calendar.dataset.calendarId;
+          const action = actionBtn.dataset.action;
+          
+          // Determine context - if viewing, switch to edit mode first
+          if (viewingFile && !editingFile) {
+            // We're viewing the file; store delete target and open confirm modal
+            if (action === 'edit') {
+              setEditingFile(viewingFile);
+              setTimeout(() => openCalendarModal('edit', editMarkdownTextareaRef, calendarId), 200);
+            } else if (action === 'delete') {
+              setDeleteCalendarTarget({ calendarId, context: 'view', fileId: viewingFile?._id || null });
+              setShowDeleteCalendarModal(true);
+            }
+          } else if (editingFile) {
+            if (action === 'edit') {
+              openCalendarModal('edit', editMarkdownTextareaRef, calendarId);
+            } else if (action === 'delete') {
+              setDeleteCalendarTarget({ calendarId, context: 'edit', fileId: editingFile?._id || null });
+              setShowDeleteCalendarModal(true);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[CalendarAction] handler error', err);
+      }
+    };
+
+    document.addEventListener('click', handleCalendarAction, true);
+    return () => document.removeEventListener('click', handleCalendarAction, true);
+  }, [viewingFile, editingFile]);
+
+  const confirmDeleteCalendar = async () => {
+    const { calendarId, context, fileId } = deleteCalendarTarget || {};
+    if (!calendarId) return;
+
+    try {
+      if (context === 'create') {
+        // Remove from newFile draft
+        const updated = deleteCalendar(calendarId, context);
+        setNewFile((prev) => ({ ...prev, content: updated }));
+        addToast('success', 'Calendar deleted');
+      } else if (context === 'edit' || context === 'view') {
+        // For existing files, save update to server
+        const targetFileId = fileId || (editingFile?._id) || (viewingFile?._id);
+        if (!targetFileId) {
+          addToast('error', 'Unable to determine file to update');
+          setShowDeleteCalendarModal(false);
+          return;
+        }
+
+        // Use current content (editing if present, else viewing)
+        const currentContent = (editingFile && editingFile._id === targetFileId) ? editingFile.content : (viewingFile && viewingFile._id === targetFileId) ? viewingFile.content : '';
+        const calendarRegex = new RegExp(`<div class="calendar-widget" data-calendar="true" data-calendar-id="${calendarId}"[\\s\\S]*?</div></div></div>`, 'g');
+        const updatedContent = currentContent.replace(calendarRegex, '');
+
+        // Persist
+        const success = await handleUpdateFile(targetFileId, { content: updatedContent });
+        if (success) {
+          // Update local view
+          if (viewingFile && viewingFile._id === targetFileId) {
+            setViewingFile((prev) => prev ? { ...prev, content: updatedContent } : prev);
+          }
+          if (editingFile && editingFile._id === targetFileId) {
+            setEditingFile((prev) => prev ? { ...prev, content: updatedContent } : prev);
+          }
+          addToast('success', 'Calendar deleted');
+        } else {
+          addToast('error', 'Failed to delete calendar');
+        }
+      }
+    } catch (err) {
+      console.error('Delete calendar failed', err);
+      addToast('error', 'Delete failed');
+    } finally {
+      setShowDeleteCalendarModal(false);
+      setDeleteCalendarTarget({ calendarId: null, context: null, fileId: null });
+    }
+  };
+
+  const generateShareLink = async (file) => {
+    setShareFile(file);
+    setGeneratingShareLink(true);
+    setShowShareModal(true);
+    
+    try {
+      const { data } = await API.post(`/api/files/${file._id}/share`);
+      const link = `${window.location.origin}/shared/${data.shareToken}`;
+      setShareLink(link);
+      
+      // Refresh shared links if section is open
+      if (showSharedLinksSection) {
+        fetchSharedLinks();
+      }
+    } catch (err) {
+      console.error('Error generating share link:', err);
+      addToast('error', err?.response?.data?.msg || 'Failed to generate share link');
+      setShowShareModal(false);
+    } finally {
+      setGeneratingShareLink(false);
+    }
+  };
+
+  const copyShareLink = () => {
+    navigator.clipboard.writeText(shareLink);
+    addToast('success', 'Link copied to clipboard');
+  };
+
+  const closeShareModal = () => {
+    setShowShareModal(false);
+    setShareFile(null);
+    setShareLink('');
+  };
+
+  const fetchSharedLinks = async () => {
+    setFetchingSharedLinks(true);
+    try {
+      const { data } = await API.get('/api/files/shared-links');
+      setSharedLinks(data);
+    } catch (err) {
+      console.error('Error fetching shared links:', err);
+      addToast('error', err?.response?.data?.msg || 'Failed to fetch shared links');
+    } finally {
+      setFetchingSharedLinks(false);
+    }
+  };
+
+  const deleteSharedLink = async (linkId) => {
+    setDeletingLinkId(linkId);
+    try {
+      await API.delete(`/api/files/shared-links/${linkId}`);
+      setSharedLinks(prev => prev.filter(link => link._id !== linkId));
+      addToast('success', 'Share link deleted successfully');
+    } catch (err) {
+      console.error('Error deleting share link:', err);
+      addToast('error', err?.response?.data?.msg || 'Failed to delete share link');
+    } finally {
+      setDeletingLinkId(null);
+    }
+  };
+
+  const toggleSharedLinksSection = () => {
+    const willShow = !showSharedLinksSection;
+    setShowSharedLinksSection(willShow);
+    
+    // Fetch links when opening section
+    if (willShow) {
+      fetchSharedLinks();
+    }
+  };
+
   return (
     <>
       {navigating ? (
@@ -588,6 +1174,13 @@ ${existingContent}
           </div>} className="ms-2" />
         </div>
         <div className="d-flex gap-2">
+          <button
+            className="btn btn-outline-primary"
+            onClick={openSearchModal}
+            title="Search files and folders"
+          >
+            <i className="ri-search-line"></i><span className="d-none d-md-inline ms-2">Search</span>
+          </button>
           <button 
             className="btn btn-outline-primary"
             onClick={() => setShowCreateFolderModal(true)}
@@ -601,6 +1194,100 @@ ${existingContent}
             <i className="ri-add-line"></i><span className="d-none d-md-inline ms-2">New File</span>
           </button>
         </div>
+      </div>
+
+      {/* Shared Links Section */}
+      <div className="mb-4">
+        <button
+          className="btn btn-outline-primary w-100 d-flex justify-content-between align-items-center"
+          onClick={toggleSharedLinksSection}
+        >
+          <span>
+            <i className="ri-share-line me-2"></i>
+            Shared Links {sharedLinks.length > 0 && `(${sharedLinks.length})`}
+          </span>
+          <i className={`ri-arrow-${showSharedLinksSection ? 'up' : 'down'}-s-line`}></i>
+        </button>
+        
+        {showSharedLinksSection && (
+          <div className="card mt-3" style={{ background: 'var(--panel)', border: '1px solid var(--border)' }}>
+            <div className="card-body">
+              {fetchingSharedLinks ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <p className="text-muted mt-2 mb-0">Loading shared links...</p>
+                </div>
+              ) : sharedLinks.length === 0 ? (
+                <div className="text-center py-4">
+                  <i className="ri-link-unlink-m" style={{ fontSize: '3rem', color: 'var(--text-muted)' }}></i>
+                  <p className="text-muted mt-2 mb-0">No shared links yet. Share a file to see it here.</p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>File Title</th>
+                        <th>Share Link</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sharedLinks.map((link) => (
+                        <tr key={link._id}>
+                          <td>
+                            <i className="ri-file-text-line me-2"></i>
+                            {link.file?.title || 'Untitled'}
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <code 
+                                className="text-truncate" 
+                                style={{ maxWidth: '300px', fontSize: '0.85rem' }}
+                              >
+                                {`${window.location.origin}/shared/${link.token}`}
+                              </code>
+                              <button
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(`${window.location.origin}/shared/${link.token}`);
+                                  addToast('success', 'Link copied to clipboard');
+                                }}
+                                title="Copy link"
+                              >
+                                <i className="ri-file-copy-line"></i>
+                              </button>
+                            </div>
+                          </td>
+                          <td className="text-muted">
+                            {new Date(link.createdAt).toLocaleDateString()}
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => deleteSharedLink(link._id)}
+                              disabled={deletingLinkId === link._id}
+                              title="Delete share link"
+                            >
+                              {deletingLinkId === link._id ? (
+                                <span className="spinner-border spinner-border-sm"></span>
+                              ) : (
+                                <i className="ri-delete-bin-line"></i>
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Breadcrumb Navigation */}
@@ -1054,6 +1741,7 @@ ${existingContent}
                   <label className="form-label">Content</label>
                   <MarkdownHelperActions
                     onTable={() => openTableModal({ context: 'create', textareaRef: createMarkdownTextareaRef })}
+                    onCalendar={() => openCalendarModal('create', createMarkdownTextareaRef)}
                     onSpacing={() => openSpacingModal({ context: 'create', textareaRef: createMarkdownTextareaRef })}
                     onImage={() => triggerInlineImagePicker('create')}
                     imageUploading={inlineImageUploading && inlineImageContext === 'create'}
@@ -1132,6 +1820,10 @@ ${existingContent}
                       <i className="ri-edit-line"></i>
                       <span className="d-none d-md-inline ms-2">Edit</span>
                     </button>
+                    <button type="button" className="btn btn-outline-primary" onClick={() => generateShareLink(viewingFile)} disabled={operationLoading}>
+                      <i className="ri-share-line"></i>
+                      <span className="d-none d-md-inline ms-2">Share</span>
+                    </button>
                     <button type="button" className="btn btn-danger" onClick={() => setShowDeleteModal(true)} disabled={operationLoading}>
                       <i className="ri-delete-bin-line"></i>
                       <span className="d-none d-md-inline ms-2">Delete</span>
@@ -1161,6 +1853,7 @@ ${existingContent}
                       <label className="form-label">Content</label>
                       <MarkdownHelperActions
                         onTable={() => openTableModal({ context: 'edit', textareaRef: editMarkdownTextareaRef })}
+                        onCalendar={() => openCalendarModal('edit', editMarkdownTextareaRef)}
                         onSpacing={() => openSpacingModal({ context: 'edit', textareaRef: editMarkdownTextareaRef })}
                         onImage={() => triggerInlineImagePicker('edit')}
                         imageUploading={inlineImageUploading && inlineImageContext === 'edit'}
@@ -1183,7 +1876,7 @@ ${existingContent}
                 ) : (
                   <div className="file-content">
                     <div 
-                      className="markdown-preview markdown-body"
+                      className="markdown-preview markdown-body visual-preview"
                       dangerouslySetInnerHTML={{ __html: getRenderableContent(viewingFile.content) }}
                     />
                   </div>
@@ -1252,7 +1945,7 @@ ${existingContent}
               className="btn btn-danger"
               type="button"
               onClick={() => { if (folderToDelete && folderToDelete._id) handleDeleteFolder(folderToDelete._id); }}
-              disabled={operationLoading || !folderToDelete?._id || folderDeleteInfo.loading || folderDeleteInfo.subfolderCount > 0 || folderDeleteInfo.fileCount > 0}
+              disabled={operationLoading || !(folderToDelete?._id) || folderDeleteInfo.loading || folderDeleteInfo.subfolderCount > 0 || folderDeleteInfo.fileCount > 0}
             >
               {operationLoading ? 'Deleting...' : 'Delete'}
             </button>
@@ -1274,24 +1967,10 @@ ${existingContent}
       </Modal>
 
       <Modal
-        open={tableModalState.open}
+        open={isTableModalOpen}
         onClose={closeTableModal}
         title="Insert Table"
-        footer={
-          <div className="d-flex gap-2 justify-content-end w-100">
-            <button type="button" className="btn btn-outline-secondary" onClick={closeTableModal}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={insertTableFromModal}
-              disabled={tableConfig.rows < 1 || tableConfig.cols < 1}
-            >
-              Insert table
-            </button>
-          </div>
-        }
+        footer={tableModalFooter}
       >
         <div className="row g-3">
           <div className="col-12 col-sm-6">
@@ -1342,16 +2021,7 @@ ${existingContent}
         open={spacingModalState.open}
         onClose={closeSpacingModal}
         title="Add Margin & Padding"
-        footer={
-          <div className="d-flex gap-2 justify-content-end w-100">
-            <button type="button" className="btn btn-outline-secondary" onClick={closeSpacingModal}>
-              Cancel
-            </button>
-            <button type="button" className="btn btn-primary" onClick={applySpacingFromModal}>
-              Apply spacing
-            </button>
-          </div>
-        }
+        footer={spacingModalFooter}
       >
         <div className="row g-3">
           <div className="col-12 col-sm-6">
@@ -1383,6 +2053,141 @@ ${existingContent}
           <div className="col-12">
             <small className="text-muted d-block">Spacing wraps your selected content inside a div with margin/padding styles.</small>
           </div>
+        </div>
+      </Modal>
+
+      {/* Calendar Modal */}
+      <Modal
+        open={calendarModalState.open}
+        onClose={closeCalendarModal}
+        title={calendarModalState.editingId ? 'Edit Date Calendar' : 'Insert Date Calendar'}
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+              <button type="button" className="btn btn-outline-secondary" onClick={closeCalendarModal}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-primary" onClick={applyCalendarFromModal}>
+              {calendarModalState.editingId ? 'Update calendar' : 'Insert calendar'}
+            </button>
+          </div>
+        }
+      >
+        <div className="row g-3 mb-3">
+          <div className="col-6">
+            <label className="form-label">Year</label>
+            <input
+              type="number"
+              className="form-control"
+              min="1900"
+              max="2100"
+              value={calendarConfig.year}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                setCalendarConfig(prev => ({ ...prev, year: value || new Date().getFullYear() }));
+              }}
+            />
+          </div>
+          <div className="col-6">
+            <label className="form-label">Month</label>
+            <select
+              className="form-select"
+              value={calendarConfig.month}
+              onChange={(e) => setCalendarConfig(prev => ({ ...prev, month: parseInt(e.target.value, 10) }))}
+            >
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4">April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+          <div className="col-6">
+            <label className="form-label">Start Date</label>
+            <input
+              type="number"
+              className="form-control"
+              min="1"
+              max="31"
+              value={calendarConfig.startDate}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                setCalendarConfig(prev => ({ ...prev, startDate: value || 1 }));
+              }}
+            />
+          </div>
+          <div className="col-6">
+            <label className="form-label">End Date</label>
+            <input
+              type="number"
+              className="form-control"
+              min="1"
+              max="31"
+              value={calendarConfig.endDate}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                setCalendarConfig(prev => ({ ...prev, endDate: value || 31 }));
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="mb-2">
+          <label className="form-label">Add Messages to Dates (Optional)</label>
+          <small className="text-muted d-block mb-2">
+            Click on a date below to add a message that appears when users click it
+          </small>
+          <div style={{ maxHeight: '280px', overflowY: 'auto', overflowX: 'hidden', paddingRight: '8px' }} className="custom-scrollbar">
+            {Array.from({ length: Math.min(calendarConfig.endDate - calendarConfig.startDate + 1, 31) }, (_, i) => {
+              const day = calendarConfig.startDate + i;
+              return (
+                <div key={day} className="mb-2">
+                  <label className="form-label small mb-1 text-muted">Day {day}</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    placeholder={`Message for day ${day}...`}
+                    value={calendarDates[day] || ''}
+                    onChange={(e) => handleDateMessageChange(day, e.target.value)}
+                    maxLength={200}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {calendarModalState.editingId && (
+          <div className="alert alert-info py-2 px-3 mt-2 mb-0" role="alert" style={{ fontSize: '0.9rem' }}>
+            <i className="ri-information-line me-1"></i>
+            Editing calendar. Click <strong>Update calendar</strong> to save.
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Calendar Confirmation Modal */}
+      <Modal
+        open={showDeleteCalendarModal}
+        onClose={() => setShowDeleteCalendarModal(false)}
+        title="Delete Calendar"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button type="button" className="btn btn-outline-secondary" onClick={() => setShowDeleteCalendarModal(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-danger" onClick={confirmDeleteCalendar}>
+              Delete
+            </button>
+          </div>
+        }
+      >
+        <div className="mb-3">
+          <p>Are you sure you want to delete this calendar? This action cannot be undone.</p>
         </div>
       </Modal>
 
@@ -1447,6 +2252,226 @@ ${existingContent}
           />
         </div>
       )}
+
+      {/* Search Modal */}
+      <Modal open={showSearchModal} onClose={closeSearchModal} title="Search Files & Folders">
+          <div className="modal-body">
+            <div className="mb-3">
+              <input
+                type="search"
+                className="form-control"
+                placeholder="Start typing to search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              <small className="text-muted">
+                Searches through all files and folders (including nested folders)
+              </small>
+            </div>
+
+            {isSearching && (
+              <div className="text-center py-4">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Searching...</span>
+                </div>
+                <p className="mt-2 text-muted">Searching...</p>
+              </div>
+            )}
+
+            {!isSearching && searchQuery.trim() && (
+              <>
+                {searchResults.files.length === 0 && searchResults.folders.length === 0 ? (
+                  <div className="text-center py-4 text-muted">
+                    <i className="ri-search-line" style={{ fontSize: '3rem' }}></i>
+                    <p className="mt-2">No results found for "{searchQuery}"</p>
+                  </div>
+                ) : (
+                  <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {/* Folders Results */}
+                    {searchResults.folders.length > 0 && (
+                      <div className="mb-4">
+                        <h6 className="text-muted mb-3">
+                          <i className="ri-folder-line me-2"></i>
+                          Folders ({searchResults.folders.length})
+                        </h6>
+                        {searchResults.folders.map((folder) => (
+                          <div
+                            key={folder._id}
+                            className="card mb-2"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => openFolderFromSearch(folder)}
+                          >
+                            <div className="card-body py-2">
+                              <div className="d-flex align-items-center">
+                                <i className="ri-folder-fill text-warning me-3" style={{ fontSize: '1.5rem' }}></i>
+                                <div className="flex-grow-1">
+                                  <h6 
+                                    className="mb-0" 
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: highlightSearchText(folder.name, searchQuery) 
+                                    }}
+                                  ></h6>
+                                  <small className="text-muted">
+                                    <i className="ri-folder-open-line me-1"></i>
+                                    {folder.path || 'Root'}
+                                  </small>
+                                </div>
+                                <i className="ri-arrow-right-line text-muted"></i>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Files Results */}
+                    {searchResults.files.length > 0 && (
+                      <div>
+                        <h6 className="text-muted mb-3">
+                          <i className="ri-file-text-line me-2"></i>
+                          Files ({searchResults.files.length})
+                        </h6>
+                        {searchResults.files.map((file) => (
+                          <div
+                            key={file._id}
+                            className="card mb-2"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => openFileFromSearch(file)}
+                          >
+                            <div className="card-body py-2">
+                              <div className="d-flex align-items-start">
+                                <i className="ri-file-text-fill text-primary me-3 mt-1" style={{ fontSize: '1.5rem' }}></i>
+                                <div className="flex-grow-1">
+                                  <h6 
+                                    className="mb-1" 
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: highlightSearchText(file.title, searchQuery) 
+                                    }}
+                                  ></h6>
+                                  <p 
+                                    className="text-muted small mb-1" 
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: highlightSearchText(
+                                        file.content.replace(/[#*`>\-\[\]]/g, '').substring(0, 100) + 
+                                        (file.content.length > 100 ? '...' : ''),
+                                        searchQuery
+                                      )
+                                    }}
+                                  ></p>
+                                  <small className="text-muted">
+                                    <i className="ri-folder-open-line me-1"></i>
+                                    {file.path}
+                                    <span className="ms-3">
+                                      <i className="ri-time-line me-1"></i>
+                                      {new Date(file.updatedAt).toLocaleDateString()}
+                                    </span>
+                                  </small>
+                                </div>
+                                <i className="ri-arrow-right-line text-muted mt-1"></i>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {!searchQuery.trim() && !isSearching && (
+              <div className="text-center py-4 text-muted">
+                <i className="ri-search-2-line" style={{ fontSize: '3rem' }}></i>
+                <p className="mt-2">Start typing to search files and folders</p>
+              </div>
+            )}
+          </div>
+      </Modal>
+
+      {/* Date Message Modal */}
+      <Modal 
+        open={dateMessageModal.open} 
+        onClose={() => setDateMessageModal({ open: false, day: null, message: '' })} 
+        title={`Day ${dateMessageModal.day}`}
+      >
+        <div className="modal-body">
+          <div className="d-flex align-items-start gap-3 p-3 bg-light rounded">
+            <div className="text-primary" style={{ fontSize: '2.5rem' }}>
+              📅
+            </div>
+            <div className="flex-grow-1">
+              <h6 className="mb-2 text-muted">Message for this date:</h6>
+              <p className="mb-0" style={{ fontSize: '1.05rem', lineHeight: '1.6' }}>
+                {dateMessageModal.message}
+              </p>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Share File Modal */}
+      <Modal
+        open={showShareModal}
+        onClose={closeShareModal}
+        title="Share File"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button type="button" className="btn btn-outline-secondary" onClick={closeShareModal}>
+              Close
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={copyShareLink}
+              disabled={!shareLink}
+            >
+              <i className="ri-clipboard-line me-2"></i>
+              Copy Link
+            </button>
+          </div>
+        }
+      >
+        {generatingShareLink ? (
+          <div className="text-center py-4">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Generating link...</span>
+            </div>
+            <p className="mt-3 text-muted">Generating shareable link...</p>
+          </div>
+        ) : (
+          <div>
+            <p className="mb-3">
+              Share <strong>{shareFile?.title}</strong> with anyone. They can view the file without signing in.
+            </p>
+            
+            <div className="alert alert-info d-flex align-items-start mb-3">
+              <i className="ri-information-line me-2 mt-1"></i>
+              <div>
+                <strong>Public Link:</strong> Anyone with this link can view the file content. One link per file - reusing same link if it already exists.
+              </div>
+            </div>
+            {shareLink && (
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  value={shareLink}
+                  readOnly
+                  onClick={(e) => e.target.select()}
+                />
+                <button 
+                  className="btn btn-outline-secondary" 
+                  type="button"
+                  onClick={copyShareLink}
+                >
+                  <i className="ri-clipboard-line"></i>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       <input
         type="file"

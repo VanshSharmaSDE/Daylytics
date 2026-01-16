@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import Dashboard from './layout/Dashboard'
+import SharedFile from './pages/SharedFile'
 import { useAuth } from './context/AuthContext'
 import { useData } from './context/DataContext'
 import Loader from './components/Loader'
@@ -19,6 +20,7 @@ const App = () => {
     <Routes>
       <Route path="/register" element={<Register/>} />
       <Route path="/login" element={<Login/>} />
+      <Route path="/shared/:token" element={<SharedFile/>} />
       <Route path="/dashboard" element={token ? <Navigate to="/dashboard/tasks" /> : <Navigate to="/login" />} />
       <Route path="/dashboard/tasks" element={token ? <Dashboard/> : <Navigate to="/login" />} />
       <Route path="/dashboard/files" element={token ? <Dashboard/> : <Navigate to="/login" />} />

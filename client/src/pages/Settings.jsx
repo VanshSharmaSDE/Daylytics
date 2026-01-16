@@ -23,6 +23,9 @@ const Settings = () => {
   const [loadingStorage, setLoadingStorage] = useState(false);
   const [deletingAsset, setDeletingAsset] = useState(null);
   const [assetToDelete, setAssetToDelete] = useState(null);
+  const [selectedAssets, setSelectedAssets] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -87,6 +90,63 @@ const Settings = () => {
       setDeletingAsset(null);
       setAssetToDelete(null);
     }
+  };
+
+  const toggleSelectAsset = (asset) => {
+    setSelectedAssets(prev => {
+      const exists = prev.find(a => a.id === asset.id);
+      if (exists) {
+        return prev.filter(a => a.id !== asset.id);
+      } else {
+        return [...prev, asset];
+      }
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedAssets.length === storageData?.assets?.length) {
+      setSelectedAssets([]);
+    } else {
+      setSelectedAssets(storageData?.assets || []);
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedAssets.length === 0) return;
+
+    setBulkDeleting(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const asset of selectedAssets) {
+      try {
+        const params = new URLSearchParams();
+        if (asset.type === 'file') {
+          params.append('fileId', asset.fileId);
+          params.append('imageUrl', asset.url);
+        }
+        
+        await API.delete(`/api/storage/${asset.type}/${asset.id}?${params.toString()}`);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to delete asset ${asset.id}:`, err);
+        failCount++;
+      }
+    }
+
+    // Summary toast
+    if (successCount > 0 && failCount === 0) {
+      addToast('success', `Successfully deleted ${successCount} asset(s)`);
+    } else if (successCount > 0 && failCount > 0) {
+      addToast('warning', `Deleted ${successCount} asset(s), ${failCount} failed`);
+    } else if (failCount > 0) {
+      addToast('error', `Failed to delete ${failCount} asset(s)`);
+    }
+
+    setBulkDeleting(false);
+    setShowBulkDeleteModal(false);
+    setSelectedAssets([]);
+    fetchStorageData();
   };
 
   const handleLogout = () => {
@@ -286,10 +346,37 @@ const Settings = () => {
                             <p className="mt-2">No assets uploaded yet</p>
                           </div>
                         ) : (
-                          <div className="table-responsive">
+                          <>
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                              <div>
+                                {selectedAssets.length > 0 && (
+                                  <span className="text-muted">
+                                    {selectedAssets.length} asset(s) selected
+                                  </span>
+                                )}
+                              </div>
+                              {selectedAssets.length > 0 && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => setShowBulkDeleteModal(true)}
+                                >
+                                  <i className="ri-delete-bin-line me-1"></i>
+                                  Delete Selected ({selectedAssets.length})
+                                </button>
+                              )}
+                            </div>
+                            <div className="table-responsive">
                             <table className="table table-hover">
                               <thead>
                                 <tr>
+                                  <th width="50">
+                                    <input
+                                      type="checkbox"
+                                      className="form-check-input"
+                                      checked={selectedAssets.length === storageData?.assets?.length && storageData?.assets?.length > 0}
+                                      onChange={toggleSelectAll}
+                                    />
+                                  </th>
                                   <th>Preview</th>
                                   <th>Name</th>
                                   <th>Type</th>
@@ -301,6 +388,14 @@ const Settings = () => {
                               <tbody>
                                 {storageData.assets.map((asset, index) => (
                                   <tr key={index}>
+                                    <td>
+                                      <input
+                                        type="checkbox"
+                                        className="form-check-input"
+                                        checked={selectedAssets.some(a => a.id === asset.id)}
+                                        onChange={() => toggleSelectAsset(asset)}
+                                      />
+                                    </td>
                                     <td>
                                       <img 
                                         src={asset.url} 
@@ -358,6 +453,7 @@ const Settings = () => {
                               </tbody>
                             </table>
                           </div>
+                          </>
                         )}
                       </div>
                     </>
@@ -377,6 +473,42 @@ const Settings = () => {
           </div>
         </div>
       </div>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <Modal
+        open={showBulkDeleteModal}
+        title="Delete Multiple Assets?"
+        onClose={() => setShowBulkDeleteModal(false)}
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setShowBulkDeleteModal(false)}
+              disabled={bulkDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleting}
+            >
+              {bulkDeleting ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2"></span>
+                  Deleting...
+                </>
+              ) : (
+                `Delete ${selectedAssets.length} Asset(s)`
+              )}
+            </button>
+          </div>
+        }
+      >
+        <p className="mb-0">
+          Are you sure you want to delete {selectedAssets.length} selected asset(s)? This action cannot be undone.
+        </p>
+      </Modal>
 
       {/* Delete Asset Confirmation Modal */}
       <Modal

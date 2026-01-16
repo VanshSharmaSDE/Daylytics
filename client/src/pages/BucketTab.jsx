@@ -38,7 +38,11 @@ const BucketTab = () => {
   const [pdfFetchError, setPdfFetchError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [uploadQueue, setUploadQueue] = useState([]);
+  const [uploadingMultiple, setUploadingMultiple] = useState(false);
   const fileRef = useRef(null);
+  const multiFileRef = useRef(null);
 
   const fetchFiles = async () => {
     await fetchBucket(true);
@@ -91,6 +95,68 @@ const BucketTab = () => {
       setUploading(false);
       setProgress(0);
     }
+  };
+
+  const onSelectMultipleFiles = async (fileList) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const filesArray = Array.from(fileList);
+    const validFiles = [];
+    const invalidFiles = [];
+    let totalSize = 0;
+
+    // Validate each file
+    filesArray.forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        invalidFiles.push({ name: file.name, reason: 'exceeds 10 MB limit' });
+      } else {
+        validFiles.push(file);
+        totalSize += file.size;
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      addToast("warning", `${invalidFiles.length} file(s) skipped (too large)`);
+    }
+
+    if (validFiles.length === 0) {
+      multiFileRef.current.value = null;
+      return;
+    }
+
+    // Upload files sequentially
+    setUploadingMultiple(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < validFiles.length; i++) {
+      const file = validFiles[i];
+      setProgress(Math.round(((i + 1) / validFiles.length) * 100));
+      
+      const fd = new FormData();
+      fd.append("file", file);
+      
+      try {
+        await pushToBucket(fd);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to upload ${file.name}:`, err);
+        failCount++;
+      }
+    }
+
+    // Summary toast
+    if (successCount > 0 && failCount === 0) {
+      addToast("success", `Successfully uploaded ${successCount} file(s)`);
+    } else if (successCount > 0 && failCount > 0) {
+      addToast("warning", `Uploaded ${successCount} file(s), ${failCount} failed`);
+    } else if (failCount > 0) {
+      addToast("error", `Failed to upload ${failCount} file(s)`);
+    }
+
+    multiFileRef.current.value = null;
+    setUploadingMultiple(false);
+    setProgress(0);
   };
 
   const openView = async (file) => {
@@ -178,8 +244,13 @@ const BucketTab = () => {
 
   return (
     <>
-      {uploading && (
+      {(uploading || uploadingMultiple) && (
         <div className="mb-3">
+          <div className="d-flex justify-content-between align-items-center mb-2">
+            <small className="text-muted">
+              {uploadingMultiple ? `Uploading files... ${progress}%` : 'Uploading...'}
+            </small>
+          </div>
           <div className="progress" style={{ height: 8 }}>
             <div
               className={`progress-bar ${
@@ -211,7 +282,7 @@ const BucketTab = () => {
                 </ul>
               </div>} className="ms-2" />
             </div>
-            <div>
+            <div className="d-flex gap-2">
               <label
                 className="btn btn-primary mb-0"
                 style={{ cursor: "pointer" }}
@@ -224,6 +295,23 @@ const BucketTab = () => {
                   hidden
                   onChange={(e) =>
                     onSelectFile(e.target.files && e.target.files[0])
+                  }
+                />
+              </label>
+              <label
+                className="btn btn-outline-primary mb-0"
+                style={{ cursor: "pointer" }}
+                title="Upload multiple files at once"
+              >
+                <i className="ri-upload-2-line"></i>
+                <span className="d-none d-md-inline ms-2">Multiple</span>
+                <input
+                  ref={multiFileRef}
+                  type="file"
+                  multiple
+                  hidden
+                  onChange={(e) =>
+                    onSelectMultipleFiles(e.target.files)
                   }
                 />
               </label>
