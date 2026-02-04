@@ -1,23 +1,72 @@
 # Daylytics
 
-A lightweight daily planner and notes app combining daily tasks, markdown documents, and asset storage — built for simplicity and extensibility.
+A lightweight productivity and notes app with advanced task management, markdown documents, and asset storage — built for simplicity and extensibility.
 
 ---
 
-**Version:** 1.0.0  
-**Release Date:** 09-01-2026
+**Version:** 1.2.0  
+**Release Date:** 02-04-2026
+
+---
+
+## Changelog
+
+### Version 1.2.0 (02-04-2026)
+**Major Updates:**
+- **Complete Task System Transformation**: Migrated from date-based daily tasks to persistent task management
+  - Tasks now remain indefinitely until completed or deleted
+  - Added rich task properties: descriptions (2000 chars), priority levels, categories, due dates
+  - Removed date dependency and archiving system
+  
+- **Advanced Task Features**:
+  - Statistics dashboard with real-time counts (total, completed, pending, high-priority)
+  - Comprehensive filtering: by status, priority, category, and text search
+  - Smart sorting options: newest/oldest first, alphabetical, by priority, by due date
+  - Inline editing for all task fields
+  - Bulk operations (complete all, delete all completed)
+  - Image attachments up to 10MB per task
+  
+- **Frontend Improvements**:
+  - Modal-based task creation for better UX
+  - Fixed image height in modals with scrollable containers
+  - Created reusable Version component used across Login, Register, and Dashboard
+  - Color-coded priority badges (Red/High, Yellow/Medium, Gray/Low)
+  
+- **Backend Optimizations**:
+  - Removed redundant storage routes (233 lines) that duplicated bucket functionality
+  - Eliminated expensive storage calculation endpoints
+  - Cleaned up route registrations (8 → 7 endpoints)
+  - Reduced memory footprint and improved startup time
+  
+- **Bug Fixes**:
+  - Fixed Files tab showing empty data despite database having records
+  - Fixed malformed HTML causing parse errors in TasksTab
+  - Removed fetchArchives() calls from DataContext
+  
+- **Deleted Files**: AnalyticsTab.jsx, archive.js routes, DailyArchive.js model, autoArchive.js service, storage.js routes
+
+### Version 1.0.0 (Initial Release)
+- Basic daily task tracking with date-based system
+- Markdown notes with inline images
+- File and folder organization
+- Bucket for direct file uploads
+- JWT authentication
+- Cloudinary integration for asset storage
 
 ---
 
 ## 1. Project summary and headline features
-Daylytics is a lightweight productivity application focused on daily planning and note-taking for individuals and small teams. The product combines a daily task manager, a markdown-based notes system, and an integrated asset storage manager. It is designed to be self-hosted and extensible.
+Daylytics is a powerful yet simple productivity application focused on task management and note-taking for individuals and small teams. The product combines an advanced persistent task manager, a markdown-based notes system, and an integrated asset storage manager. It is designed to be self-hosted and extensible.
 
 Key features:
-- Daily task management with optional image attachments
-- Markdown-based notes with inline image uploads and live preview
-- File and folder organization with pinning and prioritized access
-- Per-user storage quota and asset tracking
-- Automatic daily archiving with management tools (manual archiving is not required)
+- **Advanced Persistent Task Management** - Create tasks with titles, descriptions, priorities, categories, due dates, and image attachments. Tasks persist indefinitely until completed or deleted.
+- **Smart Filtering & Search** - Filter tasks by status, priority, or category. Search across task titles, descriptions, and categories.
+- **Priority System** - Organize tasks with Low, Medium, and High priority levels with visual badges.
+- **Statistics Dashboard** - Real-time overview of total, completed, pending, and high-priority tasks.
+- **Markdown-based Notes** - Full-featured markdown editor with inline image uploads and live preview.
+- **File and Folder Organization** - Unlimited nested folders with pinning and prioritized access.
+- **Per-user Storage Quota** - Asset tracking with configurable storage limits.
+- **Integrated Bucket** - Direct file uploads for images, PDFs, documents, and videos.
 
 ---
 
@@ -25,11 +74,37 @@ Key features:
 The following sections provide a detailed description of product features and their expected behavior.
 
 ### Tasks
-- Create / Read / Update / Delete tasks for specific dates (date-scoped tasks).
-- Each task has: title (max 500 chars, max 50 words), optional image attachment, completed flag, createdAt and updatedAt timestamps.
-- Toggling completion: only the checkbox toggles completion to avoid accidental toggles when editing or selecting the task.
-- Bulk operations: delete all tasks for a date (with confirmation), and archive tasks for historical analysis.
-- User experience: per-task loaders for operations to prevent full-page blocking and duplicate actions.
+- **Persistent Task Management**: Create tasks that remain until you complete or delete them - no date restrictions.
+- **Rich Task Data**: Each task includes:
+  - Title (max 500 chars)
+  - Optional description (max 2000 chars)
+  - Priority level (Low, Medium, High)
+  - Optional category for grouping
+  - Optional due date
+  - Optional image attachment (max 10MB)
+  - Completion status
+  - Created and updated timestamps
+- **Advanced Filtering**:
+  - Status filter: All, Pending, or Completed
+  - Priority filter: All, Low, Medium, or High
+  - Text search across titles, descriptions, and categories
+- **Smart Sorting**:
+  - Newest First (default)
+  - Oldest First
+  - Alphabetical by Title
+  - By Priority Level
+  - By Due Date
+- **Inline Editing**: Edit any task field directly in the list view or detail modal.
+- **Bulk Operations**:
+  - Complete all pending tasks at once
+  - Delete all completed tasks with confirmation
+- **Statistics Overview**: Real-time dashboard showing:
+  - Total tasks count
+  - Completed tasks count
+  - Pending tasks count  
+  - High priority pending tasks count
+- **Visual Priority Badges**: Color-coded badges (Red for High, Yellow for Medium, Gray for Low).
+- **Attachment Support**: Upload and view images directly attached to tasks.
 
 ### Notes & Files (Markdown editor)
 - Files are stored as Markdown documents with a title and content.
@@ -57,12 +132,6 @@ The following sections provide a detailed description of product features and th
 - Breadcrumb navigation for easy traversal and current folder context when creating files.
 - Pinning for files and folders that should remain at the top of lists.
 - Deletion safety: folders with children or files cannot be deleted without first removing or reassigning contents.
-
-### Analytics & Archiving
-- Automatic daily archiving service runs at midnight (autoArchive service); manual triggering is not required for routine operation.
-- Archive management tools and endpoints allow viewing, exporting, and deleting archive entries for audit and maintenance purposes.
-- Each archive stores a snapshot of that date's tasks (title and completed status) to prevent duplication.
-- Analytics include completion rates, counts by date range, and archive browsing by month and year.
 
 ### Security & UX
 - JWT-based authentication for all protected endpoints.
@@ -94,9 +163,9 @@ Daylytics/
 │   ├── src/
 │   │   ├── config/                   # DB connection (db.js) and configuration helpers
 │   │   ├── middleware/               # Auth middleware (JWT) and error handlers
-│   │   ├── models/                   # Mongoose schemas (User, Task, File, Folder, BucketFile, DailyArchive)
-│   │   ├── routes/                   # Route handlers (auth, tasks, files, folders, bucket, storage, archive)
-│   │   ├── services/                 # Background services (autoArchive, cloudinaryService)
+│   │   ├── models/                   # Mongoose schemas (User, Task, File, Folder, BucketFile, SharedLink)
+│   │   ├── routes/                   # Route handlers (auth, tasks, files, folders, bucket, search)
+│   │   ├── services/                 # Background services (cloudinaryService)
 │   │   └── index.js                  # Server entrypoint and app initialization
 │   ├── package.json
 │   └── .env.example                  # Example environment variables
@@ -112,7 +181,6 @@ Key files
 - `server/src/routes/files.js` — API handlers for file CRUD and inline image uploads
 - `server/src/models/File.js` — Mongoose schema with `inlineImages` metadata
 - `server/src/services/cloudinaryService.js` — Cloudinary upload/delete helpers and URL signing utilities
-- `server/src/services/autoArchive.js` — midnight archiving scheduler and rollover logic
 - `server/src/config/db.js` — MongoDB connection setup and export
 
 The repository structure facilitates locating code relevant to a specific feature or issue.
@@ -128,12 +196,14 @@ Auth
 - PUT `/api/auth/password` — change password
 
 Tasks
-- GET `/api/tasks?date=YYYY-MM-DD` — get tasks for a date
-- POST `/api/tasks` — create task (multipart form for image)
-- PUT `/api/tasks/:id` — update task
-- PATCH `/api/tasks/:id` — toggle completed
-- DELETE `/api/tasks/:id` — delete task
-- DELETE `/api/tasks?date=YYYY-MM-DD` — delete all tasks for a date
+- GET `/api/tasks` — get all tasks for user (supports query params: status, priority, category, search, sort)
+- POST `/api/tasks` — create task (body: { title, description?, priority?, category?, dueDate? })
+- PUT `/api/tasks/:id` — update task (body: any task field)
+- PATCH `/api/tasks/:id` — toggle task completion
+- DELETE `/api/tasks/:id` — delete single task
+- DELETE `/api/tasks?type=completed` — delete all completed tasks
+- POST `/api/tasks/:id/upload` — upload image attachment (multipart)
+- DELETE `/api/tasks/:id/upload` — delete image attachment
 
 Files
 - GET `/api/files?folder=folder_id` — list files
@@ -155,13 +225,8 @@ Bucket (asset storage)
 - GET `/api/bucket/pull/:id` — get download URL
 - DELETE `/api/bucket/delete/:id` — delete bucket file
 
-Storage
-- GET `/api/storage` — get storage usage and assets
-- DELETE `/api/storage/:type/:id?fileId=...&imageUrl=...` — delete asset (task|file|bucket)
-
-Archive
-- GET `/api/archive` — list archives
-- POST `/api/archive/rollover?date=YYYY-MM-DD` — archive date (automatic at midnight)
+Search
+- GET `/api/search?query=...` — search files and folders by name/content
 
 ---
 

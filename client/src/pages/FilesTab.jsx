@@ -777,7 +777,7 @@ ${existingContent}
       addToast('error', 'Title is too long (max 200 characters)');
       return;
     }
-    if (getContentLength(newFile.content) > 50000) {
+    if (getContentLength(newFile.content) > 5000000) {
       addToast('error', 'Content is too long (max 50,000 characters)');
       return;
     }
@@ -799,7 +799,7 @@ ${existingContent}
     }
 
     if (typeof payload.content === 'string') {
-      if (getContentLength(payload.content) > 50000) {
+      if (getContentLength(payload.content) > 5000000) {
         addToast('error', 'Content is too long (max 50,000 characters)');
         return;
       }
@@ -1754,10 +1754,10 @@ ${existingContent}
                     placeholder="Write content using markdown syntax (supports headings, lists, code blocks, etc.)"
                     value={newFile.content}
                     onChange={(e) => setNewFile({ ...newFile, content: e.target.value })}
-                    maxLength={50000}
+                    maxLength={5000000}
                   ></textarea>
                   <small className="text-muted d-block">
-                    {getContentLength(newFile.content)} / 50,000 characters
+                    {getContentLength(newFile.content)} / 5,000,000 characters
                   </small>
                 </div>
         </div>
@@ -1866,10 +1866,10 @@ ${existingContent}
                         placeholder="Edit content in raw markdown"
                         value={editingFile.content}
                         onChange={(e) => setEditingFile({ ...editingFile, content: e.target.value })}
-                        maxLength={50000}
+                        maxLength={5000000}
                       ></textarea>
                       <small className="text-muted d-block">
-                        {getContentLength(editingFile.content || '')} / 50,000 characters
+                        {getContentLength(editingFile.content || '')} / 5,000,000 characters
                       </small>
                     </div>
                   </>

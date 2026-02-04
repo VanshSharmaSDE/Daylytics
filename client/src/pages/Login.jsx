@@ -3,6 +3,7 @@ import API from "../api";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ToastProvider";
+import Version from "../components/Version";
 
 const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -46,7 +47,7 @@ const Login = () => {
           <p className="auth-brand-tagline">
             Track your daily tasks and completion insights in one place
           </p>
-          <div className="auth-version">v1.0.0</div>
+          <Version />
           <div className="auth-features">
             <div className="auth-feature">
               <i className="ri-checkbox-circle-line"></i>

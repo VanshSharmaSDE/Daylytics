@@ -11,18 +11,33 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// Helper: format date to YYYY-MM-DD
-const formatDate = (d = new Date()) => d.toISOString().slice(0, 10);
-
-// GET /api/tasks?date=YYYY-MM-DD (defaults to today)
+// GET /api/tasks - Get all tasks for user with optional filters
 router.get('/', auth, async (req, res) => {
   try {
-    const date = req.query.date || formatDate();
+    const { status, priority, category, search, sort } = req.query;
     
-    // Get tasks for the specific date
-    const tasks = await Task.find({ user: req.user._id, date }).sort({ createdAt: 1 });
+    let query = { user: req.user._id };
     
-    // Return tasks as-is (daily-repeat feature removed)
+    // Apply filters
+    if (status === 'completed') query.done = true;
+    if (status === 'pending') query.done = false;
+    if (priority) query.priority = priority;
+    if (category) query.category = category;
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Determine sort order
+    let sortOption = { createdAt: -1 }; // Default: newest first
+    if (sort === 'title') sortOption = { title: 1 };
+    if (sort === 'priority') sortOption = { priority: -1, createdAt: -1 };
+    if (sort === 'dueDate') sortOption = { dueDate: 1 };
+    if (sort === 'oldest') sortOption = { createdAt: 1 };
+    
+    const tasks = await Task.find(query).sort(sortOption);
     res.json(tasks);
   } catch (err) {
     console.error('Get tasks error:', err);
@@ -30,10 +45,10 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST /api/tasks - body { title, date? }
+// POST /api/tasks - Create new task
 router.post('/', auth, async (req, res) => {
   try {
-    const { title, date } = req.body;
+    const { title, description, priority, category, dueDate } = req.body;
     if (!title) return res.status(400).json({ msg: 'Title required' });
 
     // Validate title length
@@ -41,22 +56,31 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Task title cannot exceed 500 characters' });
     }
 
-    // Validate word count
-    const wordCount = title.trim().split(/\s+/).filter(word => word.length > 0).length;
-    if (wordCount > 50) {
-      return res.status(400).json({ msg: 'Task title cannot exceed 50 words' });
+    // Validate description
+    if (description && description.length > 2000) {
+      return res.status(400).json({ msg: 'Description cannot exceed 2000 characters' });
     }
 
-    const dateKey = date ? date.slice(0, 10) : formatDate();
-    const task = new Task({ user: req.user._id, title, date: dateKey });
+    const taskData = { 
+      user: req.user._id, 
+      title,
+      description,
+      priority: priority || 'medium',
+      category
+    };
+
+    if (dueDate) taskData.dueDate = new Date(dueDate);
+
+    const task = new Task(taskData);
     await task.save();
     res.json(task);
   } catch (err) {
+    console.error('Create task error:', err);
     res.status(500).send('Server error');
   }
 });
 
-// PATCH /api/tasks/:id toggle done
+// PATCH /api/tasks/:id - Toggle task completion
 router.patch('/:id', auth, async (req, res) => {
   try {
     const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
@@ -69,53 +93,101 @@ router.patch('/:id', auth, async (req, res) => {
   }
 });
 
-
-// PUT /api/tasks/:id - edit task title
+// PUT /api/tasks/:id - Update task
 router.put('/:id', auth, async (req, res) => {
   try {
-    const { title } = req.body;
-    if (!title) return res.status(400).json({ msg: 'Title required' });
-
-    // Validate title length
-    if (title.length > 500) {
-      return res.status(400).json({ msg: 'Task title cannot exceed 500 characters' });
-    }
-
-    // Validate word count
-    const wordCount = title.trim().split(/\s+/).filter(word => word.length > 0).length;
-    if (wordCount > 50) {
-      return res.status(400).json({ msg: 'Task title cannot exceed 50 words' });
-    }
-
+    const { title, description, priority, category, dueDate } = req.body;
+    
     const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
     if (!task) return res.status(404).json({ msg: 'Task not found' });
     
-    task.title = title;
+    if (title !== undefined) {
+      if (!title) return res.status(400).json({ msg: 'Title required' });
+      if (title.length > 500) {
+        return res.status(400).json({ msg: 'Task title cannot exceed 500 characters' });
+      }
+      task.title = title;
+    }
+    
+    if (description !== undefined) {
+      if (description && description.length > 2000) {
+        return res.status(400).json({ msg: 'Description cannot exceed 2000 characters' });
+      }
+      task.description = description;
+    }
+    
+    if (priority !== undefined) task.priority = priority;
+    if (category !== undefined) task.category = category;
+    if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : null;
+    
     await task.save();
     res.json(task);
   } catch (err) {
+    console.error('Update task error:', err);
     res.status(500).send('Server error');
   }
 });
 
-// DELETE /api/tasks/:id remove task
+// DELETE /api/tasks/:id - Delete single task
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const task = await Task.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
     if (!task) return res.status(404).json({ msg: 'Task not found' });
+
+    // Delete attachment if exists
+    if (task.attachment && task.attachment.fileId) {
+      try {
+        await cloudinaryService.deleteFile(task.attachment.fileId);
+        // Reduce storage usage
+        if (task.attachment.size && req.user) {
+          req.user.storageUsed = Math.max(0, req.user.storageUsed - task.attachment.size);
+          await req.user.save();
+        }
+      } catch (err) {
+        console.error('Error deleting task attachment:', err);
+      }
+    }
+
+    await task.deleteOne();
     res.json({ msg: 'Task deleted', id: req.params.id });
   } catch (err) {
+    console.error('Delete task error:', err);
     res.status(500).send('Server error');
   }
 });
 
-// DELETE /api/tasks - delete all tasks for a specific date
+// DELETE /api/tasks - Delete all completed tasks
 router.delete('/', auth, async (req, res) => {
   try {
-    const date = req.query.date || formatDate();
-    const result = await Task.deleteMany({ user: req.user._id, date });
-    res.json({ msg: 'Tasks deleted', count: result.deletedCount, date });
+    const { type } = req.query; // type can be 'completed', 'all'
+    
+    let query = { user: req.user._id };
+    if (type === 'completed') {
+      query.done = true;
+    }
+    
+    const tasksToDelete = await Task.find(query);
+    
+    // Delete attachments from storage
+    for (const task of tasksToDelete) {
+      if (task.attachment && task.attachment.fileId) {
+        try {
+          await cloudinaryService.deleteFile(task.attachment.fileId);
+          if (task.attachment.size && req.user) {
+            req.user.storageUsed = Math.max(0, req.user.storageUsed - task.attachment.size);
+          }
+        } catch (err) {
+          console.error('Error deleting task attachment:', err);
+        }
+      }
+    }
+    
+    if (req.user) await req.user.save();
+    
+    const result = await Task.deleteMany(query);
+    res.json({ msg: 'Tasks deleted', count: result.deletedCount });
   } catch (err) {
+    console.error('Bulk delete error:', err);
     res.status(500).send('Server error');
   }
 });

@@ -176,4 +176,25 @@ router.put('/password', auth, async (req, res) => {
   }
 });
 
+// POST /api/auth/verify-password - verify password for app lock
+router.post('/verify-password', auth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({ msg: 'Password required' });
+    }
+
+    if (!req.user || !req.user.password) {
+      return res.status(401).json({ msg: 'User not authenticated' });
+    }
+
+    const match = await bcrypt.compare(password, req.user.password);
+    
+    res.json({ valid: match });
+  } catch (err) {
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

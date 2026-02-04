@@ -4,7 +4,6 @@ import { useTheme } from "../context/ThemeContext";
 
 const navItems = [
   { id: "tasks", label: "Tasks", icon: "ri-list-check-2" },
-  { id: "analytics", label: "Analytics", icon: "ri-line-chart-line" },
   { id: "files", label: "Files", icon: "ri-file-text-line" },
   { id: "bucket", label: "Bucket", icon: "ri-archive-line" },
 ];

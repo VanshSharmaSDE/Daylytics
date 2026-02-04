@@ -30,15 +30,10 @@ export const DataProvider = ({ children }) => {
 
   // Task state
   const [tasks, setTasks] = useState([]);
-  const [date, setDate] = useState(formatDate());
   const [tasksLoading, setTasksLoading] = useState(false);
   const [submittingTask, setSubmittingTask] = useState(false);
   const [updatingTasks, setUpdatingTasks] = useState(() => new Set());
   const [deletingTasks, setDeletingTasks] = useState(() => new Set());
-
-  // Analytics state
-  const [archives, setArchives] = useState([]);
-  const [archivesLoading, setArchivesLoading] = useState(false);
 
   // Files state
   const [files, setFiles] = useState([]);
@@ -74,12 +69,10 @@ export const DataProvider = ({ children }) => {
   // TASK OPERATIONS
   // ========================
 
-  const fetchTasks = async (targetDate = date, showLoader = false) => {
+  const fetchTasks = async (showLoader = false) => {
     if (showLoader) setTasksLoading(true);
     try {
-      const { data } = await API.get("/api/tasks", {
-        params: { date: targetDate },
-      });
+      const { data } = await API.get("/api/tasks");
       setTasks(data);
       return data;
     } catch (err) {
@@ -90,16 +83,16 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const addTask = async (title) => {
-    if (!title) return false;
+  const addTask = async (taskData) => {
+    if (!taskData || !taskData.title) return false;
     try {
       setSubmittingTask(true);
-      const { data } = await API.post("/api/tasks", { title, date });
+      const { data } = await API.post("/api/tasks", taskData);
       setTasks((prev) => [...prev, data]);
-      addToast("success", "Task added");
+      addToast("success", "Task created");
       return true;
     } catch (err) {
-      addToast("error", err.response?.data?.msg || "Unable to add task");
+      addToast("error", err.response?.data?.msg || "Unable to create task");
       return false;
     } finally {
       setSubmittingTask(false);
@@ -136,8 +129,8 @@ export const DataProvider = ({ children }) => {
 
   const updateTask = async (id, updates) => {
     try {
-      await API.put(`/api/tasks/${id}`, updates);
-      await fetchTasks(date);
+      const { data } = await API.put(`/api/tasks/${id}`, updates);
+      setTasks((prev) => prev.map((t) => (t._id === id ? data : t)));
       addToast("success", "Task updated");
       return true;
     } catch (err) {
@@ -170,13 +163,17 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  const deleteAllTasks = async () => {
+  const deleteAllTasks = async (type = 'completed') => {
     try {
-      const { data } = await API.delete(`/api/tasks?date=${date}`);
-      setTasks([]);
-      addToast("success", `Deleted ${data.count} tasks`);
+      const { data } = await API.delete(`/api/tasks?type=${type}`);
+      if (type === 'completed') {
+        setTasks((prev) => prev.filter(t => !t.done));
+      } else {
+        setTasks([]);
+      }
+      addToast("success", `Deleted ${data.count} task(s)`);
     } catch (err) {
-      addToast("error", "Unable to delete all tasks");
+      addToast("error", "Unable to delete tasks");
     }
   };
 
@@ -208,24 +205,6 @@ export const DataProvider = ({ children }) => {
     } catch (err) {
       addToast('error', 'Failed to remove image');
       return false;
-    }
-  };
-
-  // ========================
-  // ANALYTICS OPERATIONS
-  // ========================
-
-  const fetchArchives = async (showLoader = false) => {
-    if (showLoader) setArchivesLoading(true);
-    try {
-      const { data } = await API.get("/api/archive");
-      setArchives(data);
-      return data;
-    } catch (err) {
-      addToast("error", "Unable to load archives");
-      return [];
-    } finally {
-      if (showLoader) setArchivesLoading(false);
     }
   };
 
@@ -805,8 +784,7 @@ const deleteFromBucket = async (id) => {
       setGlobalLoading(true);
       try {
         await Promise.all([
-          fetchTasks(date),
-          fetchArchives(),
+          fetchTasks(),
           fetchFolders(),
           fetchFiles(),
         ]);
@@ -825,15 +803,6 @@ const deleteFromBucket = async (id) => {
   useEffect(() => {
     console.debug('operationLoading changed', { operationLoading, operationMessage });
   }, [operationLoading, operationMessage]);
-
-  // Fetch tasks when date changes
-  useEffect(() => {
-    // Only fetch if user is authenticated
-    if (!user) return;
-
-    setTasksLoading(true);
-    fetchTasks(date).finally(() => setTasksLoading(false));
-  }, [date, user]);
 
   // Fetch files/folders when currentFolder changes
   useEffect(() => {
@@ -876,8 +845,6 @@ const deleteFromBucket = async (id) => {
 
     // Tasks
     tasks,
-    date,
-    setDate,
     tasksLoading,
     submittingTask,
     updatingTasks,
@@ -890,11 +857,6 @@ const deleteFromBucket = async (id) => {
     deleteAllTasks,
     uploadTaskImage,
     deleteTaskImage,
-
-    // Analytics
-    archives,
-    archivesLoading,
-    fetchArchives,
 
     // Profile
     savingProfile,

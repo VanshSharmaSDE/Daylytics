@@ -5,13 +5,9 @@ import { useData } from "../context/DataContext";
 
 const cx = (...classes) => classes.filter(Boolean).join(" ");
 
-const formatDate = (d = new Date()) => d.toISOString().slice(0, 10);
-
 const TasksTab = ({ user }) => {
   const {
     tasks,
-    date,
-    setDate,
     submittingTask,
     updatingTasks,
     deletingTasks,
@@ -23,54 +19,98 @@ const TasksTab = ({ user }) => {
     deleteAllTasks,
     uploadTaskImage,
     deleteTaskImage,
-
   } = useData();
 
+  // Form state
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [category, setCategory] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  
+  // UI state
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
   const [viewingTask, setViewingTask] = useState(null);
-  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(null);
   const [deletingImage, setDeletingImage] = useState(null);
+  
+  // Filter and sort state
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPriority, setFilterPriority] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   const formatTimestamp = (value) => {
+    if (!value) return 'N/A';
     const options = {
       month: "short",
       day: "numeric",
+      year: "numeric",
       hour: "numeric",
       minute: "2-digit",
     };
     return new Date(value).toLocaleString("en-US", options);
   };
 
+  const formatDate = (value) => {
+    if (!value) return '';
+    return new Date(value).toISOString().slice(0, 10);
+  };
+
   const handleAddTask = async (e) => {
     e.preventDefault();
-    if (!title) return;
-    const success = await addTask(title);
-    if (success) setTitle("");
+    if (!title.trim()) return;
+    
+    const taskData = {
+      title: title.trim(),
+      description: description.trim(),
+      priority,
+      category: category.trim(),
+      dueDate: dueDate || null
+    };
+    
+    const success = await addTask(taskData);
+    if (success) {
+      setTitle("");
+      setDescription("");
+      setPriority("medium");
+      setCategory("");
+      setDueDate("");
+      setShowCreateModal(false);
+    }
   };
 
   const startEdit = (task) => {
-    setEditingTask(task);
-    setEditTitle(task.title);
+    setEditingTask({
+      ...task,
+      title: task.title,
+      description: task.description || "",
+      priority: task.priority || "medium",
+      category: task.category || "",
+      dueDate: task.dueDate ? formatDate(task.dueDate) : ""
+    });
   };
 
   const cancelEdit = () => {
     setEditingTask(null);
-    setEditTitle("");
   };
 
   const saveEdit = async () => {
-    if (!editTitle.trim()) return;
-    const success = await updateTask(editingTask._id, { title: editTitle });
+    if (!editingTask.title.trim()) return;
+    
+    const updates = {
+      title: editingTask.title.trim(),
+      description: editingTask.description.trim(),
+      priority: editingTask.priority,
+      category: editingTask.category.trim(),
+      dueDate: editingTask.dueDate || null
+    };
+    
+    const success = await updateTask(editingTask._id, updates);
     if (success) cancelEdit();
-  };
-
-  const handleDeleteAll = async () => {
-    setShowDeleteAllModal(false);
-    await deleteAllTasks();
   };
 
   const confirmDeleteTask = async () => {
@@ -80,15 +120,25 @@ const TasksTab = ({ user }) => {
     }
   };
 
+  const handleBulkComplete = async () => {
+    const pendingTasks = filteredTasks.filter(t => !t.done);
+    for (const task of pendingTasks) {
+      await toggleTask(task._id);
+    }
+  };
+
+  const handleBulkDelete = async (type) => {
+    setShowDeleteModal(false);
+    await deleteAllTasks(type);
+  };
+
   const handleImageUpload = async (taskId, file) => {
     if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       return;
     }
 
-    // Validate size (10MB)
     if (file.size > 10 * 1024 * 1024) {
       return;
     }
@@ -97,12 +147,9 @@ const TasksTab = ({ user }) => {
     const success = await uploadTaskImage(taskId, file);
     setUploadingImage(null);
 
-    // Update viewing task if it's the current one
-    if (viewingTask && viewingTask._id === taskId) {
+    if (viewingTask && viewingTask._id === taskId && success) {
       const updatedTask = tasks.find(t => t._id === taskId);
-      if (updatedTask) {
-        setViewingTask(updatedTask);
-      }
+      if (updatedTask) setViewingTask(updatedTask);
     }
   };
 
@@ -111,540 +158,396 @@ const TasksTab = ({ user }) => {
     const success = await deleteTaskImage(taskId);
     setDeletingImage(null);
     
-    // Update viewing task if it's the current one
-    if (viewingTask && viewingTask._id === taskId) {
+    if (viewingTask && viewingTask._id === taskId && success) {
       const updatedTask = tasks.find(t => t._id === taskId);
-      if (updatedTask) {
-        setViewingTask(updatedTask);
-      }
+      if (updatedTask) setViewingTask(updatedTask);
     }
   };
 
-  const goToPreviousDay = () => {
-    const currentDate = new Date(date);
-    currentDate.setDate(currentDate.getDate() - 1);
-    setDate(formatDate(currentDate));
+  // Filter and sort logic
+  const filteredTasks = tasks.filter(task => {
+    // Status filter
+    if (filterStatus === "completed" && !task.done) return false;
+    if (filterStatus === "pending" && task.done) return false;
+    
+    // Priority filter
+    if (filterPriority !== "all" && task.priority !== filterPriority) return false;
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchTitle = task.title.toLowerCase().includes(query);
+      const matchDesc = task.description?.toLowerCase().includes(query);
+      const matchCategory = task.category?.toLowerCase().includes(query);
+      if (!matchTitle && !matchDesc && !matchCategory) return false;
+    }
+    
+    return true;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case "oldest":
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "priority":
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return (priorityOrder[b.priority] || 2) - (priorityOrder[a.priority] || 2);
+      case "dueDate":
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      case "newest":
+      default:
+        return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+  });
+
+  // Statistics
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter(t => t.done).length;
+  const pendingTasks = tasks.filter(t => !t.done).length;
+  const highPriorityPending = tasks.filter(t => !t.done && t.priority === 'high').length;
+
+  const getPriorityBadgeClass = (priority) => {
+    switch (priority) {
+      case 'high': return 'bg-danger';
+      case 'low': return 'bg-secondary';
+      case 'medium':
+      default: return 'bg-warning';
+    }
   };
-
-  const goToNextDay = () => {
-    const currentDate = new Date(date);
-    currentDate.setDate(currentDate.getDate() + 1);
-    setDate(formatDate(currentDate));
-  };
-
-  const renderTaskActions = (t) => (
-    <div className="d-flex align-items-center gap-1">
-      <button
-        className="task-edit-btn"
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          startEdit(t);
-        }}
-      >
-        <i className="ri-edit-line"></i>
-      </button>
-      <button
-        className="task-delete-btn"
-        type="button"
-        disabled={deletingTasks.has(t._id)}
-        onClick={(e) => {
-          e.stopPropagation();
-          setTaskToDelete(t._id);
-        }}
-      >
-        {deletingTasks.has(t._id) ? (
-          <div
-            className="spinner-border spinner-border-sm text-danger"
-            role="status"
-          />
-        ) : (
-          <i className="ri-delete-bin-line"></i>
-        )}
-      </button>
-    </div>
-  );
-
-  const renderListView = () => (
-    <div key="list-view" className="list-group">
-      {tasks.length === 0 ? (
-        <div className="list-group-item text-muted text-center py-4">
-          No tasks for this day
-        </div>
-      ) : (
-        tasks.map((t) => (
-          <div
-            key={t._id}
-            className={cx(
-              "list-group-item d-flex justify-content-between align-items-center",
-              t.done && "list-group-item-success"
-            )}
-          >
-            {editingTask?._id === t._id ? (
-              <>
-                <div className="d-flex align-items-center gap-2 me-1 flex-grow-1">
-                  <input
-                    className="form-control"
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    maxLength={500}
-                    autoFocus
-                  />
-                </div>
-                <div className="d-flex gap-2">
-                  <button
-                    className="task-edit-save-btn"
-                    onClick={saveEdit}
-                    title="Save"
-                  >
-                    <i className="ri-check-line"></i>
-                  </button>
-                  <button
-                    className="task-edit-cancel-btn"
-                    onClick={cancelEdit}
-                    title="Cancel"
-                  >
-                    <i className="ri-close-line"></i>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div
-                  className="d-flex align-items-center gap-3 flex-grow-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setViewingTask(t);
-                  }}
-                  role="button"
-                >
-                  {updatingTasks.has(t._id) ? (
-                    <div
-                      className="spinner-border spinner-border-sm text-primary"
-                      role="status"
-                    />
-                  ) : (
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={t.done}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleTask(t._id);
-                      }}
-                    />
-                  )}
-                  <span
-                    className={cx(
-                      "task-title-truncate",
-                      t.done && "text-decoration-line-through"
-                    )}
-                  >
-                    {t.title}
-                  </span>
-                </div>
-                <div className="d-flex align-items-center ms-1 gap-1">
-                  <span className="task-item-time">
-                    {formatTimestamp(t.createdAt)}
-                  </span>
-                  {renderTaskActions(t)}
-                </div>
-              </>
-            )}
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const renderCardView = () => (
-    <div key="card-view" className="row g-3">
-      {tasks.length === 0 ? (
-        <div className="col-12">
-          <div className="card">
-            <div className="card-body text-muted text-center py-4">
-              No tasks for this day
-            </div>
-          </div>
-        </div>
-      ) : (
-        tasks.map((t) => (
-          <div key={t._id} className="col-12 col-md-6 col-lg-4">
-            <div className={cx("card h-100", t.done && "border-success")}>
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-start mb-2">
-                  <div className="d-flex align-items-start gap-2 flex-grow-1">
-                    {updatingTasks.has(t._id) ? (
-                      <div
-                        className="spinner-border spinner-border-sm text-primary mt-1"
-                        role="status"
-                      />
-                    ) : (
-                      <input
-                        className="form-check-input mt-1"
-                        type="checkbox"
-                        checked={t.done}
-                        onChange={() => toggleTask(t._id)}
-                      />
-                    )}
-                    <div className="flex-grow-1">
-                      <p
-                        className={cx(
-                          "card-text mb-2",
-                          t.done && "text-decoration-line-through"
-                        )}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setViewingTask(t)}
-                      >
-                        {t.title}
-                      </p>
-
-                      <small className="text-muted d-block">
-                        {formatTimestamp(t.createdAt)}
-                      </small>
-                    </div>
-                  </div>
-                  <div className="d-flex gap-1">
-                    {renderTaskActions(t)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const renderCompactView = () => (
-    <div key="compact-view" className="list-group list-group-flush">
-      {tasks.length === 0 ? (
-        <div className="list-group-item text-muted text-center py-3">
-          No tasks for this day
-        </div>
-      ) : (
-        tasks.map((t) => (
-          <div
-            key={t._id}
-            className={cx(
-              "list-group-item compact-view-item d-flex justify-content-between align-items-center py-2",
-              t.done && "bg-success bg-opacity-10"
-            )}
-          >
-            <div className="d-flex align-items-center gap-2 flex-grow-1">
-              {updatingTasks.has(t._id) ? (
-                <div
-                  className="spinner-border spinner-border-sm text-primary"
-                  role="status"
-                  style={{ width: "1rem", height: "1rem" }}
-                />
-              ) : (
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  checked={t.done}
-                  onChange={() => toggleTask(t._id)}
-                  style={{ width: "1rem", height: "1rem" }}
-                />
-              )}
-              <span
-                className={cx(
-                  "small",
-                  t.done && "text-decoration-line-through"
-                )}
-                style={{ cursor: "pointer" }}
-                onClick={() => setViewingTask(t)}
-              >
-                {t.title}
-              </span>
-            </div>
-            <div className="d-flex align-items-center gap-1">
-              {renderTaskActions(t)}
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const renderCircleView = () => (
-    <div key="circle-view" className="row g-4">
-      {tasks.length === 0 ? (
-        <div className="col-12">
-          <div className="text-muted text-center py-4">
-            No tasks for this day
-          </div>
-        </div>
-      ) : (
-        tasks.map((t) => (
-          <div key={t._id} className="col-6 col-md-4 col-lg-3">
-            <div className="text-center circle-view-item">
-              <div
-                className={cx(
-                  "rounded-circle mx-auto d-flex align-items-center justify-content-center position-relative",
-                  t.done ? "bg-success" : "bg-secondary bg-opacity-25"
-                )}
-                style={{
-                  width: "120px",
-                  height: "120px",
-                  cursor: "pointer",
-                  border: t.done ? "3px solid var(--bs-success)" : "3px solid var(--border)"
-                }}
-                onClick={() => setViewingTask(t)}
-              >
-                {updatingTasks.has(t._id) ? (
-                  <div
-                    className="spinner-border text-primary"
-                    role="status"
-                  />
-                ) : (
-                  <div className="text-center p-3">
-                    <i
-                      className={cx(
-                        t.done ? "ri-checkbox-circle-fill" : "ri-checkbox-blank-circle-line",
-                        t.done ? "text-white" : ""
-                      )}
-                      style={{ fontSize: "2rem" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTask(t._id);
-                      }}
-                    ></i>
-                  </div>
-                )}
-              </div>
-              <p
-                className={cx(
-                  "mt-2 mb-1 small",
-                  t.done && "text-decoration-line-through"
-                )}
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                }}
-              >
-                {t.title}
-              </p>
-
-              <div className="d-flex justify-content-center gap-1 mt-2">
-                {renderTaskActions(t)}
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  );
-
-  const renderTasks = () => renderListView();
 
   return (
     <>
       <div className="tasks-tab">
-        {/* Header - Mobile */}
-        <div className="d-flex d-md-none justify-content-between align-items-center mb-3">
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-center mb-4">
           <div className="d-flex align-items-center">
             <h2 className="mb-0">Tasks</h2>
             <InfoTooltip content={<div>
-              <strong>Task limits:</strong>
+              <strong>Advanced Task Management:</strong>
               <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
-                <li>Title: up to 500 characters (max 50 words)</li>
-                <li>Optional image attachment per task (max 10 MB)</li>
-                <li>Completion toggles via checkbox only</li>
-              </ul>
-            </div>} className="ms-2" />
-          </div>
-          <div className="d-flex gap-2">
-
-            {tasks.length > 0 && (
-              <button
-                type="button"
-                className="btn btn-outline-danger btn-sm"
-                onClick={() => setShowDeleteAllModal(true)}
-                title="Delete all tasks"
-              >
-                <i className="ri-delete-bin-line"></i>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile Date Controls */}
-        <div className="d-flex d-md-none gap-2 mb-4">
-          <button
-            className="btn btn-outline-secondary"
-            type="button"
-            onClick={goToPreviousDay}
-            title="Previous day"
-          >
-            <i className="ri-arrow-left-s-line"></i>
-          </button>
-          <input
-            type="date"
-            className="form-control"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
-          <button
-            className="btn btn-outline-secondary"
-            type="button"
-            onClick={goToNextDay}
-            title="Next day"
-          >
-            <i className="ri-arrow-right-s-line"></i>
-          </button>
-          <button
-            className="btn btn-outline-primary"
-            type="button"
-            onClick={() => setDate(formatDate())}
-          >
-            Today
-          </button>
-        </div>
-
-        {/* Header - Desktop */}
-        <div className="d-none d-md-flex justify-content-between align-items-center mb-4">
-          <div className="d-flex align-items-center">
-            <h2 className="mb-0">Tasks</h2>
-            <InfoTooltip content={<div>
-              <strong>Task limits:</strong>
-              <ul style={{ margin: '6px 0 0 16px', padding: 0 }}>
-                <li>Title: up to 500 characters (max 50 words)</li>
-                <li>Optional image attachment per task (max 10 MB)</li>
-                <li>Completion toggles via checkbox only</li>
+                <li>Create persistent tasks with descriptions and priorities</li>
+                <li>Filter by status, priority, and search</li>
+                <li>Sort by date, priority, title, or due date</li>
+                <li>Optional image attachments (max 10 MB)</li>
+                <li>Bulk operations for completed tasks</li>
               </ul>
             </div>} className="ms-2" />
           </div>
           
-          <div className="d-flex gap-2 align-items-center">
-
-
-            {/* Date Picker Group */}
+          <div className="d-flex gap-2">
             <button
-              className="btn btn-outline-secondary"
-              type="button"
-              onClick={goToPreviousDay}
-              title="Previous day"
+              className="btn btn-primary"
+              onClick={() => setShowCreateModal(true)}
             >
-              <i className="ri-arrow-left-s-line"></i>
+              <i className="ri-add-line"></i><span className="d-none d-md-inline ms-2">Create Task</span>
             </button>
-            <input
-              type="date"
-              className="form-control"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            <button
-              className="btn btn-outline-secondary"
-              type="button"
-              onClick={goToNextDay}
-              title="Next day"
-            >
-              <i className="ri-arrow-right-s-line"></i>
-            </button>
-            <button
-              className="btn btn-outline-primary"
-              type="button"
-              onClick={() => setDate(formatDate())}
-            >
-              Today
-            </button>
-
-            {/* Action Buttons */}
-            {tasks.length > 0 && (
+            {completedTasks > 0 && (
               <button
-                type="button"
-                className="btn btn-outline-danger"
-                onClick={() => setShowDeleteAllModal(true)}
-                title="Delete all tasks"
+                className="btn btn-sm btn-outline-danger"
+                onClick={() => setShowDeleteModal(true)}
+                title="Delete completed tasks"
               >
-                <i className="ri-delete-bin-line"></i>
+                <i className="ri-delete-bin-line"></i><span className="d-none d-md-inline ms-2">Clear Completed</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Add Task Form - Desktop */}
-        <form
-          onSubmit={handleAddTask}
-          className="d-none d-md-flex gap-2 mb-4"
-        >
-          <input
-            className="form-control"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Add a task for today"
-            maxLength={500}
-          />
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={submittingTask}
-            style={{ minWidth: '100px' }}
-          >
-            {submittingTask ? "Adding..." : "Add Task"}
-          </button>
-        </form>
+        {/* Statistics Cards */}
+        <div className="row g-3 mb-4">
+          <div className="col-6 col-md-3">
+            <div className="card">
+              <div className="card-body text-center">
+                <h3 className="mb-0">{totalTasks}</h3>
+                <small className="text-muted">Total Tasks</small>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card border-success">
+              <div className="card-body text-center">
+                <h3 className="mb-0 text-success">{completedTasks}</h3>
+                <small className="text-muted">Completed</small>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card border-warning">
+              <div className="card-body text-center">
+                <h3 className="mb-0 text-warning">{pendingTasks}</h3>
+                <small className="text-muted">Pending</small>
+              </div>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="card border-danger">
+              <div className="card-body text-center">
+                <h3 className="mb-0 text-danger">{highPriorityPending}</h3>
+                <small className="text-muted">High Priority</small>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        {/* Add Task Form - Mobile */}
-        <form
-          onSubmit={handleAddTask}
-          className="d-md-none mb-4"
-        >
-          <div className="d-flex gap-2">
-            <input
-              className="form-control"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Add a task..."
-              maxLength={500}
-            />
+        {/* Filters and Sort */}
+        <div className="card mb-4">
+          <div className="card-body">
+            <div className="row g-3">
+              <div className="col-md-3">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Search tasks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="high">High Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="low">Low Priority</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <select
+                  className="form-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="title">Title (A-Z)</option>
+                  <option value="priority">Priority</option>
+                  <option value="dueDate">Due Date</option>
+                </select>
+              </div>
+            </div>
+            
+            {(searchQuery || filterStatus !== "all" || filterPriority !== "all") && (
+              <div className="d-flex justify-content-between align-items-center mt-3">
+                <small className="text-muted">
+                  Showing {filteredTasks.length} of {totalTasks} tasks
+                </small>
+                <button
+                  className="btn btn-sm btn-link"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilterStatus("all");
+                    setFilterPriority("all");
+                  }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bulk Actions */}
+        {pendingTasks > 0 && (
+          <div className="d-flex gap-2 mb-3">
             <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={submittingTask}
+              className="btn btn-sm btn-outline-success"
+              onClick={handleBulkComplete}
             >
-              {submittingTask ? <i className="ri-loader-4-line"></i> : <i className="ri-add-line"></i>}
+              <i className="ri-checkbox-multiple-line"></i><span className="d-none d-md-inline ms-2">Complete All Pending</span>
             </button>
           </div>
-        </form>
+        )}
 
-        {renderTasks()}
+        {/* Tasks List */}
+        <div className="list-group">
+          {filteredTasks.length === 0 ? (
+            <div className="list-group-item text-muted text-center py-5">
+              {totalTasks === 0 ? (
+                <>
+                  <i className="ri-task-line" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                  <p className="mt-3 mb-0">No tasks yet. Create your first task above!</p>
+                </>
+              ) : (
+                <>
+                  <i className="ri-filter-line" style={{ fontSize: '3rem', opacity: 0.3 }}></i>
+                  <p className="mt-3 mb-0">No tasks match your filters</p>
+                </>
+              )}
+            </div>
+          ) : (
+            filteredTasks.map((task) => (
+              <div
+                key={task._id}
+                className={cx(
+                  "list-group-item",
+                  task.done && "list-group-item-success"
+                )}
+              >
+                {editingTask?._id === task._id ? (
+                  // Edit Mode
+                  <div>
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <input
+                          className="form-control"
+                          value={editingTask.title}
+                          onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                          maxLength={500}
+                          autoFocus
+                        />
+                      </div>
+                      <div className="col-12">
+                        <textarea
+                          className="form-control"
+                          value={editingTask.description}
+                          onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                          placeholder="Description"
+                          maxLength={2000}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <select
+                          className="form-select"
+                          value={editingTask.priority}
+                          onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                      <div className="col-md-4">
+                        <input
+                          className="form-control"
+                          value={editingTask.category}
+                          onChange={(e) => setEditingTask({ ...editingTask, category: e.target.value })}
+                          placeholder="Category"
+                          maxLength={50}
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={editingTask.dueDate}
+                          onChange={(e) => setEditingTask({ ...editingTask, dueDate: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2 mt-3">
+                      <button
+                        className="btn btn-sm btn-success"
+                        onClick={saveEdit}
+                      >
+                        <i className="ri-check-line"></i> Save
+                      </button>
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={cancelEdit}
+                      >
+                        <i className="ri-close-line"></i> Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // View Mode
+                  <div>
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div className="d-flex align-items-start gap-3 flex-grow-1">
+                        {updatingTasks.has(task._id) ? (
+                          <div className="spinner-border spinner-border-sm text-primary mt-1" role="status" />
+                        ) : (
+                          <input
+                            className="form-check-input mt-1"
+                            type="checkbox"
+                            checked={task.done}
+                            onChange={() => toggleTask(task._id)}
+                          />
+                        )}
+                        <div className="flex-grow-1" role="button" onClick={() => setViewingTask(task)}>
+                          <h6 className={cx("mb-1", task.done && "text-decoration-line-through")}>
+                            {task.title}
+                          </h6>
+                          {task.description && (
+                            <p className="text-muted small mb-2" style={{ whiteSpace: 'pre-wrap' }}>
+                              {task.description.length > 100 
+                                ? task.description.substring(0, 100) + '...' 
+                                : task.description
+                              }
+                            </p>
+                          )}
+                          <div className="d-flex flex-wrap gap-2 align-items-center">
+                            <span className={cx("badge", getPriorityBadgeClass(task.priority))}>
+                              {task.priority || 'medium'}
+                            </span>
+                            {task.category && (
+                              <span className="badge bg-info">{task.category}</span>
+                            )}
+                            {task.dueDate && (
+                              <span className="badge bg-secondary">
+                                <i className="ri-calendar-line"></i> {formatDate(task.dueDate)}
+                              </span>
+                            )}
+                            {task.attachment && (
+                              <span className="badge bg-primary">
+                                <i className="ri-attachment-line"></i> Has Attachment
+                              </span>
+                            )}
+                            <small className="text-muted">
+                              {formatTimestamp(task.createdAt)}
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="d-flex gap-1 ms-2">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => startEdit(task)}
+                          title="Edit task"
+                        >
+                          <i className="ri-edit-line"></i>
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => setTaskToDelete(task._id)}
+                          disabled={deletingTasks.has(task._id)}
+                          title="Delete task"
+                        >
+                          {deletingTasks.has(task._id) ? (
+                            <div className="spinner-border spinner-border-sm" role="status" />
+                          ) : (
+                            <i className="ri-delete-bin-line"></i>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
-      <Modal
-        open={showDeleteAllModal}
-        onClose={() => setShowDeleteAllModal(false)}
-        title="Delete all tasks?"
-        footer={
-          <div className="d-flex gap-2 justify-content-end w-100">
-            <button
-              className="btn btn-outline-secondary"
-              type="button"
-              onClick={() => setShowDeleteAllModal(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="btn btn-danger"
-              type="button"
-              onClick={handleDeleteAll}
-            >
-              Delete All
-            </button>
-          </div>
-        }
-      >
-        <p className="mb-0">
-          This will permanently delete all {tasks.length} task(s) for {date}.
-          This action cannot be undone.
-        </p>
-      </Modal>
-
+      {/* View Task Modal */}
       <Modal
         open={!!viewingTask}
         onClose={() => setViewingTask(null)}
@@ -653,7 +556,6 @@ const TasksTab = ({ user }) => {
           <div className="d-flex gap-2 justify-content-end w-100">
             <button
               className="btn btn-outline-secondary"
-              type="button"
               onClick={() => setViewingTask(null)}
             >
               Close
@@ -675,34 +577,66 @@ const TasksTab = ({ user }) => {
                     setViewingTask({ ...viewingTask, done: !viewingTask.done });
                   }}
                 />
-                <span
-                  className={viewingTask.done ? "text-success" : "text-muted"}
-                >
+                <span className={viewingTask.done ? "text-success" : "text-muted"}>
                   {viewingTask.done ? "Completed" : "Pending"}
                 </span>
               </div>
             </div>
+
             <div className="mb-3">
-              <label className="form-label text-muted small">Task</label>
-              <p
-                className="mb-0"
-                style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-              >
+              <label className="form-label text-muted small">Title</label>
+              <p className="mb-0" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                 {viewingTask.title}
               </p>
             </div>
-            
-            {/* Image Attachment Section */}
+
+            {viewingTask.description && (
+              <div className="mb-3">
+                <label className="form-label text-muted small">Description</label>
+                <p className="mb-0" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {viewingTask.description}
+                </p>
+              </div>
+            )}
+
+            <div className="row mb-3">
+              <div className="col-6">
+                <label className="form-label text-muted small">Priority</label>
+                <p className="mb-0">
+                  <span className={cx("badge", getPriorityBadgeClass(viewingTask.priority))}>
+                    {viewingTask.priority || 'medium'}
+                  </span>
+                </p>
+              </div>
+              {viewingTask.category && (
+                <div className="col-6">
+                  <label className="form-label text-muted small">Category</label>
+                  <p className="mb-0">
+                    <span className="badge bg-info">{viewingTask.category}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {viewingTask.dueDate && (
+              <div className="mb-3">
+                <label className="form-label text-muted small">Due Date</label>
+                <p className="mb-0">{formatDate(viewingTask.dueDate)}</p>
+              </div>
+            )}
+
             <div className="mb-3">
               <label className="form-label text-muted small">Attachment</label>
               {viewingTask.attachment && viewingTask.attachment.url ? (
                 <div>
-                  <img 
-                    src={viewingTask.attachment.url} 
-                    alt={viewingTask.attachment.originalName || 'Task attachment'}
-                    className="img-fluid rounded mb-2"
-                    style={{ maxHeight: '400px', objectFit: 'contain' }}
-                  />
+                  <div style={{ maxHeight: '300px', overflow: 'auto', marginBottom: '0.5rem' }}>
+                    <img 
+                      src={viewingTask.attachment.url} 
+                      alt={viewingTask.attachment.originalName || 'Task attachment'}
+                      className="img-fluid rounded"
+                      style={{ maxWidth: '100%', height: 'auto', display: 'block' }}
+                    />
+                  </div>
                   <div className="d-flex gap-2">
                     <a 
                       href={viewingTask.attachment.url} 
@@ -719,7 +653,7 @@ const TasksTab = ({ user }) => {
                     >
                       {deletingImage === viewingTask._id ? (
                         <>
-                          <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                          <span className="spinner-border spinner-border-sm me-2"></span>
                           Removing...
                         </>
                       ) : (
@@ -736,16 +670,13 @@ const TasksTab = ({ user }) => {
                     type="file"
                     accept="image/*"
                     className="form-control"
-                    id={`task-image-${viewingTask._id}`}
                     onChange={(e) => e.target.files && handleImageUpload(viewingTask._id, e.target.files[0])}
                     disabled={uploadingImage === viewingTask._id}
                   />
                   <small className="text-muted">Maximum file size: 10MB. Only images allowed.</small>
                   {uploadingImage === viewingTask._id && (
                     <div className="mt-2">
-                      <div className="spinner-border spinner-border-sm" role="status">
-                        <span className="visually-hidden">Uploading...</span>
-                      </div>
+                      <div className="spinner-border spinner-border-sm"></div>
                       <span className="ms-2">Uploading...</span>
                     </div>
                   )}
@@ -761,22 +692,113 @@ const TasksTab = ({ user }) => {
         )}
       </Modal>
 
+      {/* Create Task Modal */}
       <Modal
-        open={!!taskToDelete}
-        onClose={() => setTaskToDelete(null)}
-        title="Delete task?"
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create New Task"
         footer={
           <div className="d-flex gap-2 justify-content-end w-100">
             <button
               className="btn btn-outline-secondary"
-              type="button"
+              onClick={() => setShowCreateModal(false)}
+            >
+              <i className="ri-close-line"></i><span className="d-none d-md-inline ms-2">Cancel</span>
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleAddTask}
+              disabled={submittingTask || !title.trim()}
+            >
+              {submittingTask ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2"></span>
+                  <span className="d-none d-md-inline">Creating...</span>
+                </>
+              ) : (
+                <>
+                  <i className="ri-add-line"></i><span className="d-none d-md-inline ms-2">Create</span>
+                </>
+              )}
+            </button>
+          </div>
+        }
+      >
+        <form onSubmit={handleAddTask}>
+          <div className="row g-3">
+            <div className="col-12">
+              <label className="form-label">Title *</label>
+              <input
+                className="form-control"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter task title"
+                maxLength={500}
+                required
+                autoFocus
+              />
+            </div>
+            <div className="col-12">
+              <label className="form-label">Description</label>
+              <textarea
+                className="form-control"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Add more details about this task (optional)"
+                maxLength={2000}
+                rows={4}
+              />
+            </div>
+            <div className="col-12">
+              <label className="form-label">Priority</label>
+              <select
+                className="form-select"
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <option value="low">Low Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="high">High Priority</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Category</label>
+              <input
+                className="form-control"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g., Work, Personal"
+                maxLength={50}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Due Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Task Modal */}
+      <Modal
+        open={!!taskToDelete}
+        onClose={() => setTaskToDelete(null)}
+        title="Delete Task?"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button
+              className="btn btn-outline-secondary"
               onClick={() => setTaskToDelete(null)}
             >
               Cancel
             </button>
             <button
-              className="btn btn-outline-danger"
-              type="button"
+              className="btn btn-danger"
               onClick={confirmDeleteTask}
             >
               Delete
@@ -786,6 +808,33 @@ const TasksTab = ({ user }) => {
       >
         <p className="mb-0">
           Are you sure you want to delete this task? This action cannot be undone.
+        </p>
+      </Modal>
+
+      {/* Delete Completed Modal */}
+      <Modal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Completed Tasks?"
+        footer={
+          <div className="d-flex gap-2 justify-content-end w-100">
+            <button
+              className="btn btn-outline-secondary"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => handleBulkDelete('completed')}
+            >
+              Delete All Completed
+            </button>
+          </div>
+        }
+      >
+        <p className="mb-0">
+          This will permanently delete all {completedTasks} completed task(s). This action cannot be undone.
         </p>
       </Modal>
     </>

@@ -8,7 +8,7 @@ import Loader from '../components/Loader';
 import Modal from '../components/Modal';
 
 const Settings = () => {
-  const { user, refreshUser, logout } = useAuth();
+  const { user, refreshUser, logout, lockApp } = useAuth();
   const { savingProfile, savingPassword, updateProfile, updatePassword } = useData();
   const { addToast } = useToast();
   const navigate = useNavigate();
@@ -216,6 +216,13 @@ const Settings = () => {
               >
                 <i className="ri-hard-drive-2-line me-2"></i>
                 Storage
+              </button>
+              <button
+                className="list-group-item list-group-item-action text-warning"
+                onClick={() => lockApp()}
+              >
+                <i className="ri-lock-line me-2"></i>
+                Lock App
               </button>
               <button
                 className="list-group-item list-group-item-action text-danger"

@@ -184,7 +184,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Title cannot exceed 200 characters' });
     }
 
-    if (content && content.length > 50000) {
+    if (content && content.length > 5000000) {
       return res.status(400).json({ msg: 'Content cannot exceed 50,000 characters' });
     }
 
@@ -223,7 +223,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     if (content !== undefined) {
-      if (content.length > 50000) {
+      if (content.length > 5000000) {
         return res.status(400).json({ msg: 'Content cannot exceed 50,000 characters' });
       }
       file.content = content;

@@ -6,13 +6,10 @@ const axios = require('axios');
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
-const archiveRoutes = require('./routes/archive');
 const { router: fileRoutes, sharedRouter } = require('./routes/files');
 const folderRoutes = require('./routes/folders');
 const bucketRoutes = require('./routes/bucket');
-const storageRoutes = require('./routes/storage');
 const searchRoutes = require('./routes/search');
-const { startAutoArchiveScheduler } = require('./services/autoArchive');
 const mongoose = require('mongoose');
 
 const app = express();
@@ -55,11 +52,9 @@ if (url) {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/archive', archiveRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/bucket', bucketRoutes);
-app.use('/api/storage', storageRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/shared', sharedRouter); // Public shared file route (separate router)
 
@@ -67,7 +62,7 @@ app.use('/api/shared', sharedRouter); // Public shared file route (separate rout
 app.get('/', (req, res) => res.json({ 
   status: 'ok', 
   message: 'Daylytics API is running',
-  version: '1.7.9',
+  version: '1.2.0',
   timestamp: new Date().toISOString() 
 }));
 
@@ -87,16 +82,4 @@ app.listen(PORT, () => {
     const state = mongoose.connection.readyState;
     const stateText = state === 1 ? 'connected' : state === 2 ? 'connecting' : state === 0 ? 'disconnected' : 'unknown';
     console.log(`MongoDB status: ${stateText}`);
-    
-    // Start auto-archive scheduler after server starts
-    if (state === 1) {
-      startAutoArchiveScheduler();
-      console.log('Auto-archive scheduler started');
-    } else {
-      console.log('Waiting for MongoDB connection to start scheduler...');
-      mongoose.connection.once('connected', () => {
-        startAutoArchiveScheduler();
-        console.log('Auto-archive scheduler started');
-      });
-    }
 });

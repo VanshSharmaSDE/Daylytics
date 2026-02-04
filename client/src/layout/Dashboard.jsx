@@ -5,21 +5,26 @@ import { useData } from "../context/DataContext";
 import Navbar from "./Navbar";
 import ProfileModal from "../components/ProfileModal";
 import Modal from "../components/Modal";
+import Version from "../components/Version";
+import LockScreen from "../components/LockScreen";
 import FilesTab from "../pages/FilesTab";
 import TasksTab from "../pages/TasksTab";
-import AnalyticsTab from "../pages/AnalyticsTab";
 import BucketTab from "../pages/BucketTab";
-// import EditorTab from "../pages/EditorTab";
 import Settings from "../pages/Settings";
 
 const Dashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { logout, user, refreshUser } = useAuth();
+  const { logout, user, refreshUser, isLocked, unlockApp } = useAuth();
   const { globalLoading, operationLoading, operationMessage } = useData();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // If app is locked, show lock screen
+  if (isLocked) {
+    return <LockScreen onUnlock={unlockApp} />;
+  }
 
   // Determine active tab from URL
   const activeTab = location.pathname.split("/")[2] || "tasks";
@@ -50,8 +55,6 @@ const Dashboard = () => {
 
         {activeTab === "tasks" && <TasksTab user={user} />}
 
-        {activeTab === "analytics" && <AnalyticsTab />}
-
         <div style={{ display: activeTab === "files" ? "block" : "none" }}>
           <FilesTab />
         </div>
@@ -59,8 +62,6 @@ const Dashboard = () => {
         <div style={{ display: activeTab === "bucket" ? "block" : "none" }}>
           <BucketTab />
         </div>
-
-        {/* {activeTab === "editor" && <EditorTab />} */}
 
         {activeTab === "settings" && <Settings />}
       </div>
@@ -118,7 +119,7 @@ const Dashboard = () => {
           pointerEvents: "none",
         }}
       >
-        v1.0.0
+        <Version />
       </div>
 
       <div
