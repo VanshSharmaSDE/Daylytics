@@ -207,23 +207,40 @@ const BucketTab = () => {
   const onPull = async (id, fileName) => {
     setDownloadingId(id);
     try {
-      const res = await pullFromBucket(id);
-      const url = res.url || res.data?.url;
-      // Download without mutating state: fetch blob and force download with provided filename
-      const resp = await fetch(url, { mode: "cors" });
-      if (!resp.ok) throw new Error("Download failed");
-      const blob = await resp.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
+      // Use backend proxy endpoint to download file
+      const url = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/bucket/download/${id}`;
+      
+      // Fetch with authorization header
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) throw new Error("Download failed");
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element and trigger download
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = fileName || "download";
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+      
       addToast("success", "Download started");
     } catch (err) {
-      addToast("error", err?.response?.data?.msg || "Unable to download file");
+      console.error("Download error:", err);
+      addToast("error", "Unable to download file");
     } finally {
       setDownloadingId(null);
     }

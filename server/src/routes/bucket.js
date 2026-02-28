@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
+const axios = require('axios');
 const { uploadBuffer, deleteFile, generateDownloadUrl } = require('../services/cloudinaryService');
 const BucketFile = require('../models/BucketFile');
 
@@ -118,6 +119,46 @@ router.get('/pull/:id', auth, async (req, res) => {
   } catch (err) {
     console.error('Error in pull endpoint:', err);
     return res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// GET /api/bucket/download/:id - Stream file download through backend
+router.get('/download/:id', auth, async (req, res) => {
+  try {
+    const file = await BucketFile.findById(req.params.id);
+    if (!file) return res.status(404).json({ msg: 'Not found' });
+    if (!file.uploadedBy.equals(req.user._id)) return res.status(403).json({ msg: 'Forbidden' });
+
+    console.log('Downloading file:', file.fileName);
+    console.log('Public ID:', file.publicId);
+    console.log('Resource Type:', file.resourceType);
+    
+    // Generate signed download URL from Cloudinary
+    const signedUrl = generateDownloadUrl(file.publicId, file.resourceType);
+    console.log('Signed URL generated:', signedUrl);
+    
+    // Fetch from Cloudinary and stream to client
+    const response = await axios.get(signedUrl, {
+      responseType: 'stream',
+      maxRedirects: 5,
+      timeout: 30000 // 30 second timeout
+    });
+    
+    console.log('Cloudinary response status:', response.status);
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.fileName)}"`);
+    if (response.headers['content-length']) {
+      res.setHeader('Content-Length', response.headers['content-length']);
+    }
+    
+    response.data.pipe(res);
+  } catch (err) {
+    console.error('Error in download endpoint:', err.message);
+    if (!res.headersSent) {
+      return res.status(500).json({ msg: 'Download failed', error: err.message });
+    }
   }
 });
 

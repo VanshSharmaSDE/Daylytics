@@ -9,6 +9,7 @@ const taskRoutes = require('./routes/tasks');
 const { router: fileRoutes, sharedRouter } = require('./routes/files');
 const folderRoutes = require('./routes/folders');
 const bucketRoutes = require('./routes/bucket');
+const storageRoutes = require('./routes/storage');
 const searchRoutes = require('./routes/search');
 const mongoose = require('mongoose');
 
@@ -55,6 +56,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api/folders', folderRoutes);
 app.use('/api/bucket', bucketRoutes);
+app.use('/api/storage', storageRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/shared', sharedRouter); // Public shared file route (separate router)
 

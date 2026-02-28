@@ -134,15 +134,19 @@ module.exports = {
     throw lastErr || new Error("Unable to delete file from Cloudinary");
   },
 
-  generateDownloadUrl: (filePathOrUrl) => {
+  generateDownloadUrl: (publicId, resourceType = 'raw') => {
     // Ensure Cloudinary is configured before generating URLs
-    const cld = initCloudinary();
-    if (!cld) {
-      throw new Error(
-        "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in environment variables"
-      );
-    }
-    // Cloudinary already returns secure_url in the stored URL
-    return filePathOrUrl;
+    const cld = ensureConfigured();
+    
+    // Generate a signed URL with download attachment flag
+    const signedUrl = cld.url(publicId, {
+      resource_type: resourceType,
+      type: 'upload',
+      sign_url: true,
+      flags: 'attachment',
+      secure: true
+    });
+    
+    return signedUrl;
   },
 };
