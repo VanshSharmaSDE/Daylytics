@@ -104,7 +104,9 @@ router.get('/pull/:id', auth, async (req, res) => {
     if (!file.uploadedBy.equals(req.user._id)) return res.status(403).json({ msg: 'Forbidden' });
 
     try {
-      const secureUrl = generateDownloadUrl(file.url, 300);
+      const secureUrl = file.fileId
+        ? generateDownloadUrl(file.fileId, file.resourceType || 'raw')
+        : file.url;
       return res.json({ url: secureUrl });
     } catch (err) {
       // Handle Cloudinary configuration errors specifically
@@ -129,13 +131,10 @@ router.get('/download/:id', auth, async (req, res) => {
     if (!file) return res.status(404).json({ msg: 'Not found' });
     if (!file.uploadedBy.equals(req.user._id)) return res.status(403).json({ msg: 'Forbidden' });
 
-    console.log('Downloading file:', file.fileName);
-    console.log('Public ID:', file.publicId);
-    console.log('Resource Type:', file.resourceType);
-    
     // Generate signed download URL from Cloudinary
-    const signedUrl = generateDownloadUrl(file.publicId, file.resourceType);
-    console.log('Signed URL generated:', signedUrl);
+    const signedUrl = file.fileId
+      ? generateDownloadUrl(file.fileId, file.resourceType || 'raw')
+      : file.url;
     
     // Fetch from Cloudinary and stream to client
     const response = await axios.get(signedUrl, {
@@ -143,8 +142,6 @@ router.get('/download/:id', auth, async (req, res) => {
       maxRedirects: 5,
       timeout: 30000 // 30 second timeout
     });
-    
-    console.log('Cloudinary response status:', response.status);
     
     // Set headers for file download
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
